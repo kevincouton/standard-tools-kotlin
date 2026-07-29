@@ -142,6 +142,7 @@ class OrderLifecycleE2ETest {
 
     @Test
     fun `gRPC create and list orders`() {
+        val logger = ScenarioLogger("gRPC create and list orders")
         val grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort).usePlaintext().build()
         val grpcStub = OrderServiceGrpc.newBlockingStub(grpcChannel)
 
@@ -159,10 +160,13 @@ class OrderLifecycleE2ETest {
         )
         expectThat(createResponse.customerId).isEqualTo("C2")
         expectThat(BigDecimal(createResponse.totalAmount)).isEqualTo(BigDecimal("12.00"))
+        logger.step("gRPC", "CreateOrder(C2)", createResponse.orderId)
 
         val listResponse = grpcStub.listOrders(ListOrdersRequest.newBuilder().setCustomerId("C2").build())
         expectThat(listResponse.ordersList).hasSize(1)
+        logger.step("gRPC", "ListOrders(C2)", "${listResponse.ordersList.size} order(s)")
 
         grpcChannel.shutdown()
+        logger.print()
     }
 }
