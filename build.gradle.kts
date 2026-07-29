@@ -38,7 +38,6 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.reactor)
-    implementation(libs.jackson.module.kotlin)
     implementation(libs.reactor.kotlin.extensions)
 
     testImplementation(libs.spring.boot.starter.test)

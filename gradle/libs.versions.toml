@@ -11,8 +11,8 @@ mockk = "1.13.17"
 strikt = "0.35.1"
 allure = "2.29.0"
 grpcKotlin = "1.4.1"
-grpcJava = "1.69.0"
-protoc = "3.25.5"
+grpcJava = "1.80.0"
+protoc = "4.34.2"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -36,7 +36,6 @@ postgresql = { module = "org.postgresql:postgresql" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core" }
 kotlinx-coroutines-reactor = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactor" }
-jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin" }
 reactor-kotlin-extensions = { module = "io.projectreactor.kotlin:reactor-kotlin-extensions" }
 
 grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpcKotlin" }
