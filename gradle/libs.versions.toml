@@ -44,8 +44,8 @@ grpc-protoc-gen-java = { module = "io.grpc:protoc-gen-grpc-java", version.ref = 
 grpc-protoc-gen-kotlin = { module = "io.grpc:protoc-gen-grpc-kotlin", version.ref = "grpcKotlin" }
 protoc = { module = "com.google.protobuf:protoc", version.ref = "protoc" }
 
-testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
-testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 strikt-core = { module = "io.strikt:strikt-core", version.ref = "strikt" }
