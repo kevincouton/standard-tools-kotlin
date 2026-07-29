@@ -60,18 +60,21 @@ src/main/kotlin/com/example/starter/
 ```
 
 ## 4. Technology Stack
-- **Spring Boot** 3.3+
-- **Kotlin** 2.0
+All libraries use the **latest stable compatible versions** as of the implementation date, pinned in `gradle/libs.versions.toml`:
+- **Spring Boot** 3.4+ (latest stable)
+- **Kotlin** 2.1+ (latest stable, compatible with Spring Boot)
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
 - **Spring WebFlux** + **Spring Data R2DBC** (reactive end-to-end)
-- **grpc-spring-boot-starter** with Kotlin coroutine service stubs
+- **grpc-spring-boot-starter** with Kotlin coroutine service stubs (latest stable compatible with Spring Boot)
 - **A2A (Agent-to-Agent)** JSON-RPC 2.0 agent endpoint (`/.well-known/agent.json`, `/a2a/tasks`)
 - **MCP (Model Context Protocol)** SSE endpoint (`/mcp/sse`) exposing tools
-- **Postgres** 16 + **Flyway** migrations
-- **TestContainers** for Postgres in integration and e2e tests
+- **Postgres** 17 + **Flyway** 10+ migrations
+- **TestContainers** 1.20+ for Postgres in integration and e2e tests
 - **JUnit 5** + **MockK** + **Strikt** for assertions
 - **GitHub Actions** CI workflow
 - **Dockerfile** (multi-stage, Eclipse Temurin JRE 21)
+
+**Version policy:** versions are pinned explicitly in the catalog. A Gradle dependency-updates task (e.g., `com.github.ben-manes.versions`) is included so the template can be checked for newer compatible versions easily.
 
 ## 5. Domain & Data Flow
 Domain entity: `Order` with `id`, `customerId`, `items`, `status`, `createdAt`.
