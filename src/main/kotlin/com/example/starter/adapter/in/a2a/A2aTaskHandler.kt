@@ -1,0 +1,131 @@
+package com.example.starter.adapter.`in`.a2a
+
+import com.example.starter.application.port.inbound.CancelOrderUseCase
+import com.example.starter.application.port.inbound.CreateOrderUseCase
+import com.example.starter.application.port.inbound.GetOrderUseCase
+import com.example.starter.domain.OrderItem
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
+import java.math.BigDecimal
+import java.util.UUID
+
+@RestController
+@RequestMapping("/a2a")
+class A2aTaskHandler(
+    private val createOrderUseCase: CreateOrderUseCase,
+    private val getOrderUseCase: GetOrderUseCase,
+    private val cancelOrderUseCase: CancelOrderUseCase
+) {
+
+    @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
+    fun handleTask(@RequestBody request: JsonRpcRequest): Mono<JsonRpcResponse> {
+        return Mono.fromCallable { dispatch(request) }
+            .subscribeOn(Schedulers.boundedElastic())
+    }
+
+    private fun dispatch(request: JsonRpcRequest): JsonRpcResponse {
+        return try {
+            when (request.method) {
+                "tasks/send" -> handleTasksSend(request)
+                "tasks/get" -> handleTasksGet(request)
+                "tasks/cancel" -> handleTasksCancel(request)
+                else -> JsonRpcResponse.error(request.id, -32601, "Method not found")
+            }
+        } catch (ex: IllegalArgumentException) {
+            JsonRpcResponse.error(request.id, -32602, ex.message ?: "Invalid params")
+        } catch (ex: Exception) {
+            JsonRpcResponse.error(request.id, -32603, ex.message ?: "Internal error")
+        }
+    }
+
+    private fun handleTasksSend(request: JsonRpcRequest): JsonRpcResponse {
+        val params = request.params ?: return JsonRpcResponse.error(request.id, -32602, "Missing params")
+        val skillId = params["skillId"] as? String
+            ?: return JsonRpcResponse.error(request.id, -32602, "Missing skillId")
+        val taskId = params["taskId"] as? String ?: UUID.randomUUID().toString()
+
+        val result = when (skillId) {
+            "create-order" -> {
+                val customerId = params["customerId"] as? String
+                    ?: throw IllegalArgumentException("customerId required")
+                val items = parseItems(params["items"])
+                createOrderUseCase.createOrder(CreateOrderUseCase.CreateOrderCommand(customerId, items))
+                    .let { A2aOrderSkillMapper.toTaskResult(it) }
+            }
+            "cancel-order" -> {
+                val orderId = params["orderId"] as? String
+                    ?: throw IllegalArgumentException("orderId required")
+                cancelOrderUseCase.cancelOrder(UUID.fromString(orderId))
+                    .let { A2aOrderSkillMapper.toTaskResult(it) }
+            }
+            else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
+        }
+
+        return JsonRpcResponse(
+            jsonrpc = "2.0",
+            id = request.id,
+            result = mapOf(
+                "taskId" to taskId,
+                "status" to "completed",
+                "result" to result
+            )
+        )
+    }
+
+    private fun handleTasksGet(request: JsonRpcRequest): JsonRpcResponse {
+        val params = request.params ?: return JsonRpcResponse.error(request.id, -32602, "Missing params")
+        val orderId = params["orderId"] as? String
+            ?: return JsonRpcResponse.error(request.id, -32602, "Missing orderId")
+        val order = getOrderUseCase.getOrder(UUID.fromString(orderId))
+        return JsonRpcResponse(
+            jsonrpc = "2.0",
+            id = request.id,
+            result = A2aOrderSkillMapper.toTaskResult(order)
+        )
+    }
+
+    private fun handleTasksCancel(request: JsonRpcRequest): JsonRpcResponse {
+        val params = (request.params ?: emptyMap()) + ("skillId" to "cancel-order")
+        return handleTasksSend(request.copy(method = "tasks/send", params = params))
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseItems(raw: Any?): List<OrderItem> {
+        val list = raw as? List<Map<String, Any>> ?: throw IllegalArgumentException("items required")
+        return list.map {
+            OrderItem(
+                productId = it["productId"] as? String ?: throw IllegalArgumentException("productId required"),
+                quantity = (it["quantity"] as? Number)?.toInt() ?: throw IllegalArgumentException("quantity required"),
+                unitPrice = BigDecimal(it["unitPrice"] as? String ?: throw IllegalArgumentException("unitPrice required"))
+            )
+        }
+    }
+}
+
+data class JsonRpcRequest(
+    val jsonrpc: String = "2.0",
+    val id: String? = null,
+    val method: String,
+    val params: Map<String, Any>? = null
+)
+
+data class JsonRpcResponse(
+    val jsonrpc: String = "2.0",
+    val id: String?,
+    val result: Any? = null,
+    val error: JsonRpcError? = null
+) {
+    companion object {
+        fun error(id: String?, code: Int, message: String): JsonRpcResponse =
+            JsonRpcResponse(id = id, error = JsonRpcError(code, message))
+    }
+}
+
+data class JsonRpcError(
+    val code: Int,
+    val message: String
+)
