@@ -12,7 +12,7 @@ Create a new, self-contained Spring Boot Kotlin template repository that exposes
 | REST stack | Spring Boot WebFlux (reactive) |
 | gRPC style | `grpc-spring-boot-starter` with Kotlin coroutines |
 | E2E approach | Spring Boot Test + TestContainers |
-| DevOps | GitHub Actions CI + Dockerfile |
+| DevOps | GitHub Actions CI + Dockerfile + nektos/act local runner |
 | Project structure | Single-module Clean/Hexagonal packages |
 
 ## 3. Architecture
@@ -97,6 +97,7 @@ Supported operations:
 ## 8. CI/CD & Containerization
 - `.github/workflows/ci.yml`: Gradle build, run all test suites, build Docker image, run smoke test against the image.
 - `Dockerfile`: multi-stage build compiling with Gradle, then copying the layered JAR into an Eclipse Temurin JRE 21 image.
+- **Local CI validation with [nektos/act](https://github.com/nektos/act)**: include an `.actrc` or documented command so the GitHub Actions workflow can be run locally before pushing. The workflow should be act-compatible (e.g., no secrets required for the basic build/test path, explicit runner images).
 
 ## 9. Out of Scope
 - Authentication / authorization
@@ -111,3 +112,4 @@ Supported operations:
 - gRPC endpoints respond correctly via an in-process channel.
 - Postgres migrations run successfully with TestContainers.
 - Docker image builds and starts without errors.
+- `act` can run `.github/workflows/ci.yml` locally without requiring repository secrets.
