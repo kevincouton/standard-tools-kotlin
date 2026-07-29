@@ -10,7 +10,7 @@ Create a new, self-contained Spring Boot Kotlin template repository that exposes
 | Sample domain | Order / book management |
 | Persistence | Postgres + Spring Data JPA + TestContainers |
 | REST stack | Spring Boot WebFlux (reactive) |
-| gRPC style | `grpc-spring-boot-starter` with Kotlin coroutines |
+| gRPC style | Spring Boot native gRPC starter with Kotlin coroutines |
 | E2E approach | Spring Boot Test + TestContainers |
 | DevOps | GitHub Actions CI + Dockerfile + nektos/act local runner |
 | Project structure | Single-module Clean/Hexagonal packages |
@@ -67,7 +67,7 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **Java** 25 LTS baseline
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
 - **Spring WebFlux** + **Spring Data JPA** (blocking persistence bridged to reactive via `Schedulers.boundedElastic` / `Dispatchers.IO`)
-- **grpc-spring-boot-starter** with Kotlin coroutine service stubs (latest stable compatible with Spring Boot)
+- **Spring Boot gRPC starter** (`spring-boot-starter-grpc`) with Kotlin coroutine service stubs (native Spring Boot 4.1.0 support)
 - **A2A (Agent-to-Agent)** JSON-RPC 2.0 agent endpoint (`/.well-known/agent.json`, `/a2a/tasks`)
 - **MCP (Model Context Protocol)** SSE endpoint (`/mcp/sse`) exposing tools
 - **Postgres** 18+ + **Flyway** 11+ migrations
