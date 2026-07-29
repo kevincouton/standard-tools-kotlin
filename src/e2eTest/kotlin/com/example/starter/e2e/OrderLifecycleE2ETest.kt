@@ -10,17 +10,18 @@ import com.example.starter.grpc.OrderItemRequest
 import com.example.starter.grpc.OrderServiceGrpc
 import com.example.starter.testsupport.ScenarioLogger
 import io.grpc.ManagedChannelBuilder
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.grpc.test.autoconfigure.LocalGrpcServerPort
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.MediaType
-import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.web.reactive.server.WebTestClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -34,6 +35,7 @@ import java.math.BigDecimal
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @ActiveProfiles("test")
+@AutoConfigureWebTestClient
 class OrderLifecycleE2ETest {
 
     @LocalServerPort
@@ -42,12 +44,8 @@ class OrderLifecycleE2ETest {
     @LocalGrpcServerPort
     var grpcPort: Int = 0
 
+    @Autowired
     lateinit var webTestClient: WebTestClient
-
-    @BeforeEach
-    fun setUp() {
-        webTestClient = WebTestClient.bindToServer().baseUrl("http://localhost:$port").build()
-    }
 
     companion object {
         @Container

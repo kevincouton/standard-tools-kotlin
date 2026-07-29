@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.grpc.server)
+    implementation(libs.spring.boot.starter.flyway)
     implementation(libs.grpc.kotlin.stub)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
@@ -48,6 +49,7 @@ dependencies {
 
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.spring.boot.starter.grpc.server.test)
+    testImplementation(libs.spring.boot.starter.webflux.test)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.mockk)
@@ -62,8 +64,8 @@ sourceSets {
         runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
     }
     create("e2eTest") {
-        compileClasspath += sourceSets["main"].output + sourceSets["test"].output
-        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+        compileClasspath += sourceSets["main"].output + sourceSets["test"].output + sourceSets["integrationTest"].output
+        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + sourceSets["integrationTest"].output
     }
 }
 
