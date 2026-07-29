@@ -47,6 +47,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.strikt.core)
     testImplementation(libs.allure.junit5)
+    testImplementation(libs.junit.platform.launcher)
 }
 
 sourceSets {
@@ -124,5 +125,6 @@ tasks.withType<Test> {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
     systemProperty("junit.jupiter.extensions.autodetection.enabled", "true")
+    failOnNoDiscoveredTests = false
 }
 

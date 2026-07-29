@@ -49,3 +49,4 @@ testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 strikt-core = { module = "io.strikt:strikt-core", version.ref = "strikt" }
 allure-junit5 = { module = "io.qameta.allure:allure-junit5", version.ref = "allure" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
