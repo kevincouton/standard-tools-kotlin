@@ -62,14 +62,15 @@ src/main/kotlin/com/example/starter/
 ## 4. Technology Stack
 All libraries use the **latest stable compatible versions** as of the implementation date, pinned in `gradle/libs.versions.toml`. Local tooling is managed by **[mise](https://mise.jdx.dev/)** and the container runtime is **[Podman](https://podman.io/)** (Docker-compatible where needed).
 - **mise** for local tool management (Java, Gradle, Node if needed, act, etc.)
-- **Spring Boot** 3.4+ (latest stable)
-- **Kotlin** 2.1+ (latest stable, compatible with Spring Boot)
+- **Spring Boot** 4.1.0 (latest stable)
+- **Kotlin** 2.3.21 (version aligned with Spring Boot 4.1.0)
+- **Java** 21+ baseline
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
 - **Spring WebFlux** + **Spring Data JPA** (blocking persistence bridged to reactive via `Schedulers.boundedElastic` / `Dispatchers.IO`)
 - **grpc-spring-boot-starter** with Kotlin coroutine service stubs (latest stable compatible with Spring Boot)
 - **A2A (Agent-to-Agent)** JSON-RPC 2.0 agent endpoint (`/.well-known/agent.json`, `/a2a/tasks`)
 - **MCP (Model Context Protocol)** SSE endpoint (`/mcp/sse`) exposing tools
-- **Postgres** 17 + **Flyway** 10+ migrations
+- **Postgres** 18+ + **Flyway** 11+ migrations
 - **TestContainers** 1.20+ for Postgres in integration and e2e tests
 - **JUnit 5** + **MockK** + **Strikt** for assertions
 - **GitHub Actions** CI workflow
@@ -120,6 +121,14 @@ Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management
 | Unit | Domain rules + use cases | JUnit 5, MockK, Strikt | No Spring context; ports mocked |
 | Integration | JPA repository adapter + Flyway migrations | `@DataJpaTest`, TestContainers Postgres | Real DB, no HTTP/gRPC |
 | E2E | Full app via REST, gRPC, A2A, and MCP | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel, A2A JSON-RPC client, MCP SSE client | Verifies all entry points end-to-end |
+
+### 7.1 Visual Local Test Experience
+Local test runs are designed to be informative and visual:
+- **Colored console summary**: a custom JUnit 5 `TestExecutionListener` prints a formatted table of passed/failed/skipped tests per layer (unit, integration, e2e) with checkmarks and durations.
+- **Rich Gradle test output**: `testLogging.showStandardStreams` and styled progress events show container startup (Postgres via TestContainers) and key endpoint calls.
+- **HTML reports**: Gradle's JUnit HTML reports are generated; an optional aggregated report links all three test suites.
+- **E2E scenario logs**: e2e tests print readable, step-by-step scenario descriptions (e.g., `🧪 E2E: create order via REST → verify via gRPC → cancel via MCP`) so the developer can follow the multi-protocol flow.
+- **`.mise.toml` test tasks**: `mise run test`, `mise run test-e2e`, and `mise run test-all` provide one-command, colorized local execution.
 
 ## 8. CI/CD & Containerization
 - `.github/workflows/ci.yml`: Gradle build, run all test suites, build container image, run smoke test against the image.
