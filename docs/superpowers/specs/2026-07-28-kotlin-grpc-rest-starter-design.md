@@ -64,7 +64,7 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **mise** for local tool management (Java, Gradle, Node if needed, act, etc.)
 - **Spring Boot** 4.1.0 (latest stable)
 - **Kotlin** 2.3.21 (version aligned with Spring Boot 4.1.0)
-- **Java** 21+ baseline
+- **Java** 25 LTS baseline
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
 - **Spring WebFlux** + **Spring Data JPA** (blocking persistence bridged to reactive via `Schedulers.boundedElastic` / `Dispatchers.IO`)
 - **grpc-spring-boot-starter** with Kotlin coroutine service stubs (latest stable compatible with Spring Boot)
@@ -75,7 +75,7 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **JUnit 5** + **MockK** + **Strikt** for assertions
 - **Allure** for rich, browsable test reports
 - **GitHub Actions** CI workflow
-- **Dockerfile** (multi-stage, Eclipse Temurin JRE 21)
+- **Dockerfile** (multi-stage, Eclipse Temurin JRE 25 LTS)
 
 **Version policy:** versions are pinned explicitly in the catalog. A Gradle dependency-updates task (e.g., `com.github.ben-manes.versions`) is included so the template can be checked for newer compatible versions easily.
 
