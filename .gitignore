@@ -9,9 +9,10 @@ build/
 *.iws
 *.iml
 *.ipr
-out/
+/out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+!**/src/integrationTest/**/out/
 
 ### Eclipse ###
 .apt_generated

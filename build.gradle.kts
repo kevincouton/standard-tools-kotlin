@@ -27,6 +27,12 @@ repositories {
     mavenCentral()
 }
 
+allure {
+    adapter {
+        aspectjWeaver.set(false)
+    }
+}
+
 dependencies {
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.spring.boot.starter.data.jpa)
