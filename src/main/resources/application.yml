@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: kotlin-grpc-rest-starter
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:starter}
+    username: ${DB_USER:starter}
+    password: ${DB_PASS:starter}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  grpc:
+    server:
+      port: 9090
+
+server:
+  port: 8080

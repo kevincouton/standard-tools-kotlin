@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/starter_test
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  grpc:
+    server:
+      port: 0
+
+logging:
+  level:
+    org.testcontainers: INFO
+    org.flywaydb: INFO
