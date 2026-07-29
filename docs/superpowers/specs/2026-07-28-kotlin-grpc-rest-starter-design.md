@@ -73,6 +73,7 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **Postgres** 18+ + **Flyway** 11+ migrations
 - **TestContainers** 1.20+ for Postgres in integration and e2e tests
 - **JUnit 5** + **MockK** + **Strikt** for assertions
+- **Allure** for rich, browsable test reports
 - **GitHub Actions** CI workflow
 - **Dockerfile** (multi-stage, Eclipse Temurin JRE 21)
 
@@ -122,13 +123,42 @@ Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management
 | Integration | JPA repository adapter + Flyway migrations | `@DataJpaTest`, TestContainers Postgres | Real DB, no HTTP/gRPC |
 | E2E | Full app via REST, gRPC, A2A, and MCP | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel, A2A JSON-RPC client, MCP SSE client | Verifies all entry points end-to-end |
 
-### 7.1 Visual Local Test Experience
-Local test runs are designed to be informative and visual:
-- **Colored console summary**: a custom JUnit 5 `TestExecutionListener` prints a formatted table of passed/failed/skipped tests per layer (unit, integration, e2e) with checkmarks and durations.
-- **Rich Gradle test output**: `testLogging.showStandardStreams` and styled progress events show container startup (Postgres via TestContainers) and key endpoint calls.
-- **HTML reports**: Gradle's JUnit HTML reports are generated; an optional aggregated report links all three test suites.
-- **E2E scenario logs**: e2e tests print readable, step-by-step scenario descriptions (e.g., `🧪 E2E: create order via REST → verify via gRPC → cancel via MCP`) so the developer can follow the multi-protocol flow.
-- **`.mise.toml` test tasks**: `mise run test`, `mise run test-e2e`, and `mise run test-all` provide one-command, colorized local execution.
+### 7.1 Visual Test Experience (Local + CI/CD)
+The test suite is built to be self-documenting and visually rich both on a developer machine and in CI.
+
+#### Local visual experience
+- **Colored console summary**: a custom JUnit 5 `TestExecutionListener` prints a formatted table of passed/failed/skipped tests per layer (unit, integration, e2e) with ✅/❌/⏭ symbols and durations.
+- **Scenario-driven e2e logs**: e2e tests use a `ScenarioLogger` that prints each step as a human-readable line, e.g.:
+  ```
+  🧪 E2E Scenario: Multi-protocol order lifecycle
+    ├─ [REST] POST /orders → 201 Created (order-123)
+    ├─ [gRPC] GetOrder(order-123) → PENDING
+    ├─ [A2A] tasks/send cancel-order(order-123) → COMPLETED
+    └─ [MCP] tool call get_order(order-123) → CANCELLED
+  ```
+- **Container lifecycle visibility**: TestContainers startup logs are echoed with a friendly prefix (`🐳 Postgres 18 ready on jdbc:postgresql://…`).
+- **Rich Gradle test output**: `testLogging.showStandardStreams`, styled progress events, and failure stack traces with colored cause chains.
+- **`.mise.toml` test tasks**: one-command, colorized local execution:
+  - `mise run test` — unit tests
+  - `mise run test-integration` — integration tests
+  - `mise run test-e2e` — end-to-end tests
+  - `mise run test-all` — everything with aggregated summary
+  - `mise run test-report` — opens the HTML/Allure report locally
+
+#### Reporting artifacts
+- **JUnit HTML reports**: generated per test source set under `build/reports/tests/`.
+- **Allure report**: integrated via `io.qameta.allure` Gradle plugin. Tests annotate steps with `@Step`, and the CI artifact is browsable.
+- **Aggregated test summary**: a small Gradle task merges the three JUnit XML result sets into a single Markdown summary with totals and slowest tests.
+
+#### CI/CD visual experience
+- **GitHub Actions job summary**: the CI workflow writes a Markdown job summary (`$GITHUB_STEP_SUMMARY`) showing:
+  - Total/passed/failed/skipped per test layer
+  - Direct links to uploaded HTML and Allure reports
+  - Podman image build time and size
+  - `act` command to reproduce locally
+- **Report artifacts**: HTML and Allure reports are uploaded as workflow artifacts for every run.
+- **PR annotations**: failing tests are surfaced as PR check annotations when running in a real GitHub repo.
+- **act compatibility**: the same visual outputs are produced when running the workflow locally via `act`, so developers see identical rich reports before pushing.
 
 ## 8. CI/CD & Containerization
 - `.github/workflows/ci.yml`: Gradle build, run all test suites, build container image, run smoke test against the image.
@@ -155,3 +185,4 @@ Local test runs are designed to be informative and visual:
 - `act` can run `.github/workflows/ci.yml` locally with Podman without requiring repository secrets.
 - `mise install` provides the exact Java/Gradle toolchain.
 - `podman build -t kotlin-grpc-rest-starter .` produces a working image.
+- Local and CI test runs produce colored console summaries, scenario logs, HTML reports, and Allure reports.
