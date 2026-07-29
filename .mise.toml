@@ -1,0 +1,13 @@
+[tools]
+java = "temurin-25"
+gradle = "9.1.0"
+act = "0.2.75"
+podman = "latest"
+
+[tasks]
+test = "./gradlew test"
+test-integration = "./gradlew integrationTest"
+test-e2e = "./gradlew e2eTest"
+test-all = "./gradlew test integrationTest e2eTest"
+test-report = "./gradlew allureServe"
+dependency-updates = "./gradlew dependencyUpdates"
