@@ -60,7 +60,8 @@ src/main/kotlin/com/example/starter/
 ```
 
 ## 4. Technology Stack
-All libraries use the **latest stable compatible versions** as of the implementation date, pinned in `gradle/libs.versions.toml`:
+All libraries use the **latest stable compatible versions** as of the implementation date, pinned in `gradle/libs.versions.toml`. Local tooling is managed by **[mise](https://mise.jdx.dev/)** and the container runtime is **[Podman](https://podman.io/)** (Docker-compatible where needed).
+- **mise** for local tool management (Java, Gradle, Node if needed, act, etc.)
 - **Spring Boot** 3.4+ (latest stable)
 - **Kotlin** 2.1+ (latest stable, compatible with Spring Boot)
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
@@ -75,6 +76,11 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **Dockerfile** (multi-stage, Eclipse Temurin JRE 21)
 
 **Version policy:** versions are pinned explicitly in the catalog. A Gradle dependency-updates task (e.g., `com.github.ben-manes.versions`) is included so the template can be checked for newer compatible versions easily.
+
+## 4.1 Local Development Environment
+- **mise**: `.mise.toml` pins Java, Gradle, and any other CLI tools required to build/test the project. Contributors run `mise install` to get the exact toolchain.
+- **Podman**: all containerized workflows (image build, TestContainers, `act`, smoke tests) target Podman. Scripts and docs default to `podman` commands; a `DOCKER_HOST`/`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` configuration is provided so TestContainers and `act` use the local Podman socket.
+- **act**: configured to use Podman as the container runtime (e.g., `act --container-daemon-socket ...` or `.actrc`) so the GitHub Actions workflow can be validated locally without Docker Desktop.
 
 ## 5. Domain & Data Flow
 Domain entity: `Order` with `id`, `customerId`, `items`, `status`, `createdAt`.
@@ -116,9 +122,11 @@ Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management
 | E2E | Full app via REST, gRPC, A2A, and MCP | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel, A2A JSON-RPC client, MCP SSE client | Verifies all entry points end-to-end |
 
 ## 8. CI/CD & Containerization
-- `.github/workflows/ci.yml`: Gradle build, run all test suites, build Docker image, run smoke test against the image.
+- `.github/workflows/ci.yml`: Gradle build, run all test suites, build container image, run smoke test against the image.
 - `Dockerfile`: multi-stage build compiling with Gradle, then copying the layered JAR into an Eclipse Temurin JRE 21 image.
-- **Local CI validation with [nektos/act](https://github.com/nektos/act)**: include an `.actrc` or documented command so the GitHub Actions workflow can be run locally before pushing. The workflow should be act-compatible (e.g., no secrets required for the basic build/test path, explicit runner images).
+- **Local CI validation with [nektos/act](https://github.com/nektos/act)**: include an `.actrc` and documented command so the GitHub Actions workflow can be run locally before pushing. The workflow is act-compatible and configured to run with Podman as the container runtime.
+- **Podman-first scripts**: build and smoke-test scripts use `podman` by default; `docker` is supported via aliases or environment variables.
+- **TestContainers Podman support**: configuration sets the Docker socket and ryuk settings so TestContainers starts Postgres through Podman.
 
 ## 9. Out of Scope
 - Authentication / authorization
@@ -135,4 +143,6 @@ Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management
 - MCP SSE endpoint accepts tool calls and returns correct results.
 - Postgres migrations run successfully with TestContainers.
 - Docker image builds and starts without errors.
-- `act` can run `.github/workflows/ci.yml` locally without requiring repository secrets.
+- `act` can run `.github/workflows/ci.yml` locally with Podman without requiring repository secrets.
+- `mise install` provides the exact Java/Gradle toolchain.
+- `podman build -t kotlin-grpc-rest-starter .` produces a working image.
