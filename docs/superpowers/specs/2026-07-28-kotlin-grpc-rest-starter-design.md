@@ -42,6 +42,14 @@ src/main/kotlin/com/example/starter/
 ├── adapter/in/grpc/
 │   ├── GrpcOrderService.kt
 │   └── GrpcOrderMapper.kt
+├── adapter/in/a2a/
+│   ├── A2aAgentCardController.kt
+│   ├── A2aTaskHandler.kt
+│   └── A2aOrderSkillMapper.kt
+├── adapter/in/mcp/
+│   ├── McpSseHandler.kt
+│   ├── McpToolHandler.kt
+│   └── McpOrderToolMapper.kt
 ├── adapter/out/persistence/
 │   ├── R2dbcOrderRepository.kt
 │   ├── OrderEntity.kt
@@ -57,6 +65,8 @@ src/main/kotlin/com/example/starter/
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
 - **Spring WebFlux** + **Spring Data R2DBC** (reactive end-to-end)
 - **grpc-spring-boot-starter** with Kotlin coroutine service stubs
+- **A2A (Agent-to-Agent)** JSON-RPC 2.0 agent endpoint (`/.well-known/agent.json`, `/a2a/tasks`)
+- **MCP (Model Context Protocol)** SSE endpoint (`/mcp/sse`) exposing tools
 - **Postgres** 16 + **Flyway** migrations
 - **TestContainers** for Postgres in integration and e2e tests
 - **JUnit 5** + **MockK** + **Strikt** for assertions
@@ -79,6 +89,12 @@ Supported operations:
 ### 5.2 gRPC flow
 `CreateOrder` RPC → `GrpcOrderService` (coroutine) → same use case → same repository adapter → Postgres.
 
+### 5.3 A2A flow
+Agent Card served at `/.well-known/agent.json`. JSON-RPC 2.0 task endpoint at `/a2a/tasks` supporting `tasks/send`, `tasks/get`, and `tasks/cancel`. Each A2A skill maps to a use case (e.g., "create-order" → `CreateOrderUseCase`).
+
+### 5.4 MCP flow
+Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management. Exposes tools such as `create_order`, `get_order`, and `cancel_order`, backed by the same use cases.
+
 ## 6. Error Handling
 - Domain exceptions are thrown in domain/use-case layers:
   - `OrderNotFoundException` → HTTP 404 / gRPC `NOT_FOUND`
@@ -86,13 +102,15 @@ Supported operations:
   - Invalid input → HTTP 400 / gRPC `INVALID_ARGUMENT`
 - WebFlux: global `@ControllerAdvice` maps domain exceptions to `ProblemDetail` responses.
 - gRPC: a `CoroutineExceptionInterceptor` maps throwables to the appropriate `Status`.
+- A2A: JSON-RPC error objects with standard codes (-32602 invalid params, -32603 internal error, application-specific codes for domain errors).
+- MCP: JSON-RPC error responses returned through the SSE channel with appropriate error codes.
 
 ## 7. Testing Strategy
 | Level | Scope | Tools | Notes |
 |-------|-------|-------|-------|
 | Unit | Domain rules + use cases | JUnit 5, MockK, Strikt | No Spring context; ports mocked |
 | Integration | R2DBC repository adapter + Flyway migrations | `@DataR2dbcTest`, TestContainers Postgres | Real DB, no HTTP/gRPC |
-| E2E | Full app via REST and gRPC | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel | Verifies both entry points end-to-end |
+| E2E | Full app via REST, gRPC, A2A, and MCP | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel, A2A JSON-RPC client, MCP SSE client | Verifies all entry points end-to-end |
 
 ## 8. CI/CD & Containerization
 - `.github/workflows/ci.yml`: Gradle build, run all test suites, build Docker image, run smoke test against the image.
@@ -110,6 +128,8 @@ Supported operations:
 - `./gradlew build` passes all unit, integration, and e2e tests.
 - REST endpoints respond correctly via `WebTestClient`.
 - gRPC endpoints respond correctly via an in-process channel.
+- A2A endpoints return valid JSON-RPC responses and the agent card.
+- MCP SSE endpoint accepts tool calls and returns correct results.
 - Postgres migrations run successfully with TestContainers.
 - Docker image builds and starts without errors.
 - `act` can run `.github/workflows/ci.yml` locally without requiring repository secrets.
