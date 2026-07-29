@@ -3,6 +3,7 @@ package com.example.starter.adapter.out.persistence
 import com.example.starter.domain.Order
 import com.example.starter.domain.OrderItem
 import com.example.starter.domain.OrderStatus
+import com.example.starter.testsupport.PostgresTestContainer
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,7 +12,6 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import strikt.api.expectThat
@@ -22,7 +22,7 @@ import java.math.BigDecimal
 
 @Tag("integration")
 @SpringBootTest
-@Import(OrderPersistenceMapper::class, JpaOrderRepository::class, IntegrationTestFlywayConfig::class)
+@Import(OrderPersistenceMapper::class, JpaOrderRepository::class)
 @Testcontainers
 @ActiveProfiles("test")
 class JpaOrderRepositoryIntegrationTest {
@@ -32,11 +32,7 @@ class JpaOrderRepositoryIntegrationTest {
 
     companion object {
         @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:18").apply {
-            withDatabaseName("starter_test")
-            withUsername("test")
-            withPassword("test")
-        }
+        val postgres = PostgresTestContainer.instance
 
         @DynamicPropertySource
         @JvmStatic

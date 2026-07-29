@@ -39,7 +39,6 @@ dependencies {
     implementation(libs.spring.boot.starter.grpc.server)
     implementation(libs.spring.boot.starter.flyway)
     implementation(libs.grpc.kotlin.stub)
-    implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
     runtimeOnly(libs.postgresql)
 
@@ -64,8 +63,8 @@ sourceSets {
         runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
     }
     create("e2eTest") {
-        compileClasspath += sourceSets["main"].output + sourceSets["test"].output + sourceSets["integrationTest"].output
-        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output + sourceSets["integrationTest"].output
+        compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
     }
 }
 

@@ -2,27 +2,28 @@ package com.example.starter.e2e
 
 import com.example.starter.adapter.`in`.a2a.JsonRpcRequest
 import com.example.starter.adapter.`in`.mcp.McpJsonRpcRequest
-import com.example.starter.grpc.CancelOrderRequest
 import com.example.starter.grpc.CreateOrderRequest
 import com.example.starter.grpc.GetOrderRequest
 import com.example.starter.grpc.ListOrdersRequest
 import com.example.starter.grpc.OrderItemRequest
 import com.example.starter.grpc.OrderServiceGrpc
+import com.example.starter.testsupport.PostgresTestContainer
 import com.example.starter.testsupport.ScenarioLogger
+import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.grpc.test.autoconfigure.LocalGrpcServerPort
-import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import strikt.api.expectThat
@@ -30,6 +31,7 @@ import strikt.assertions.contains
 import strikt.assertions.hasSize
 import strikt.assertions.isEqualTo
 import java.math.BigDecimal
+import java.util.concurrent.TimeUnit
 
 @Tag("e2e")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -38,22 +40,32 @@ import java.math.BigDecimal
 @AutoConfigureWebTestClient
 class OrderLifecycleE2ETest {
 
-    @LocalServerPort
-    var port: Int = 0
-
     @LocalGrpcServerPort
     var grpcPort: Int = 0
 
     @Autowired
     lateinit var webTestClient: WebTestClient
 
+    private lateinit var grpcChannel: ManagedChannel
+
+    @BeforeEach
+    fun setupChannel() {
+        grpcChannel = ManagedChannelBuilder.forAddress(LOCALHOST, grpcPort)
+            .usePlaintext()
+            .build()
+    }
+
+    @AfterEach
+    fun tearDownChannel() {
+        grpcChannel.shutdownNow()
+        grpcChannel.awaitTermination(5, TimeUnit.SECONDS)
+    }
+
     companion object {
+        const val LOCALHOST = "localhost"
+
         @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:18").apply {
-            withDatabaseName("starter_test")
-            withUsername("test")
-            withPassword("test")
-        }
+        val postgres = PostgresTestContainer.instance
 
         @DynamicPropertySource
         @JvmStatic
@@ -86,14 +98,12 @@ class OrderLifecycleE2ETest {
         logger.step("REST", "POST /orders", "201 Created ($orderId)")
 
         // gRPC get
-        val grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort).usePlaintext().build()
         val grpcStub = OrderServiceGrpc.newBlockingStub(grpcChannel)
         val grpcResponse = grpcStub.getOrder(
             GetOrderRequest.newBuilder().setOrderId(orderId).build()
         )
         expectThat(grpcResponse.status).isEqualTo("PENDING")
         logger.step("gRPC", "GetOrder($orderId)", "PENDING")
-        grpcChannel.shutdown()
 
         // A2A cancel
         val a2aResult = webTestClient.post().uri("/a2a/tasks")
@@ -143,7 +153,6 @@ class OrderLifecycleE2ETest {
     @Test
     fun `gRPC create and list orders`() {
         val logger = ScenarioLogger("gRPC create and list orders")
-        val grpcChannel = ManagedChannelBuilder.forAddress("localhost", grpcPort).usePlaintext().build()
         val grpcStub = OrderServiceGrpc.newBlockingStub(grpcChannel)
 
         val createResponse = grpcStub.createOrder(
@@ -166,7 +175,6 @@ class OrderLifecycleE2ETest {
         expectThat(listResponse.ordersList).hasSize(1)
         logger.step("gRPC", "ListOrders(C2)", "${listResponse.ordersList.size} order(s)")
 
-        grpcChannel.shutdown()
         logger.print()
     }
 }
