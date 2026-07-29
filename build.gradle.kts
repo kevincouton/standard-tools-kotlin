@@ -61,6 +61,17 @@ sourceSets {
     }
 }
 
+kotlin {
+    sourceSets {
+        named("integrationTest") {
+            kotlin.srcDir("src/integrationTest/kotlin")
+        }
+        named("e2eTest") {
+            kotlin.srcDir("src/e2eTest/kotlin")
+        }
+    }
+}
+
 configurations {
     named("integrationTestImplementation") { extendsFrom(configurations["testImplementation"]) }
     named("integrationTestRuntimeOnly") { extendsFrom(configurations["testRuntimeOnly"]) }
@@ -83,6 +94,7 @@ protobuf {
     generateProtoTasks {
         all().forEach {
             it.plugins {
+                named("grpc") { }
                 id("grpckt") { }
             }
         }
@@ -115,6 +127,3 @@ tasks.withType<Test> {
     systemProperty("junit.jupiter.extensions.autodetection.enabled", "true")
 }
 
-allure {
-    version.set(libs.versions.allure.get())
-}
