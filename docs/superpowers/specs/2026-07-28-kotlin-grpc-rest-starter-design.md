@@ -8,7 +8,7 @@ Create a new, self-contained Spring Boot Kotlin template repository that exposes
 |----------|--------|
 | Repo name | `kotlin-grpc-rest-starter` |
 | Sample domain | Order / book management |
-| Persistence | Postgres + TestContainers |
+| Persistence | Postgres + Spring Data JPA + TestContainers |
 | REST stack | Spring Boot WebFlux (reactive) |
 | gRPC style | `grpc-spring-boot-starter` with Kotlin coroutines |
 | E2E approach | Spring Boot Test + TestContainers |
@@ -51,7 +51,7 @@ src/main/kotlin/com/example/starter/
 │   ├── McpToolHandler.kt
 │   └── McpOrderToolMapper.kt
 ├── adapter/out/persistence/
-│   ├── R2dbcOrderRepository.kt
+│   ├── JpaOrderRepository.kt
 │   ├── OrderEntity.kt
 │   └── OrderPersistenceMapper.kt
 └── config/
@@ -64,7 +64,7 @@ All libraries use the **latest stable compatible versions** as of the implementa
 - **Spring Boot** 3.4+ (latest stable)
 - **Kotlin** 2.1+ (latest stable, compatible with Spring Boot)
 - **Gradle Kotlin DSL** with `gradle/libs.versions.toml` version catalog
-- **Spring WebFlux** + **Spring Data R2DBC** (reactive end-to-end)
+- **Spring WebFlux** + **Spring Data JPA** (blocking persistence bridged to reactive via `Schedulers.boundedElastic` / `Dispatchers.IO`)
 - **grpc-spring-boot-starter** with Kotlin coroutine service stubs (latest stable compatible with Spring Boot)
 - **A2A (Agent-to-Agent)** JSON-RPC 2.0 agent endpoint (`/.well-known/agent.json`, `/a2a/tasks`)
 - **MCP (Model Context Protocol)** SSE endpoint (`/mcp/sse`) exposing tools
@@ -87,10 +87,10 @@ Supported operations:
 `OrderStatus`: `PENDING`, `CONFIRMED`, `SHIPPED`, `CANCELLED`.
 
 ### 5.1 REST flow
-`POST /orders` → `OrderController` → `CreateOrderUseCase` → `OrderService` → `OrderRepository` port → `R2dbcOrderRepository` → Postgres.
+`POST /orders` → `OrderController` → `CreateOrderUseCase` → `OrderService` → `OrderRepository` port → `JpaOrderRepository` (wrapped in `Mono.fromCallable` / `boundedElastic`) → Postgres.
 
 ### 5.2 gRPC flow
-`CreateOrder` RPC → `GrpcOrderService` (coroutine) → same use case → same repository adapter → Postgres.
+`CreateOrder` RPC → `GrpcOrderService` (coroutine) → same use case → same repository adapter (wrapped in `withContext(Dispatchers.IO)`) → Postgres.
 
 ### 5.3 A2A flow
 Agent Card served at `/.well-known/agent.json`. JSON-RPC 2.0 task endpoint at `/a2a/tasks` supporting `tasks/send`, `tasks/get`, and `tasks/cancel`. Each A2A skill maps to a use case (e.g., "create-order" → `CreateOrderUseCase`).
@@ -112,7 +112,7 @@ Server-Sent Events (SSE) endpoint at `/mcp/sse` with JSON-RPC session management
 | Level | Scope | Tools | Notes |
 |-------|-------|-------|-------|
 | Unit | Domain rules + use cases | JUnit 5, MockK, Strikt | No Spring context; ports mocked |
-| Integration | R2DBC repository adapter + Flyway migrations | `@DataR2dbcTest`, TestContainers Postgres | Real DB, no HTTP/gRPC |
+| Integration | JPA repository adapter + Flyway migrations | `@DataJpaTest`, TestContainers Postgres | Real DB, no HTTP/gRPC |
 | E2E | Full app via REST, gRPC, A2A, and MCP | `@SpringBootTest`, TestContainers Postgres, `WebTestClient`, in-process gRPC channel, A2A JSON-RPC client, MCP SSE client | Verifies all entry points end-to-end |
 
 ## 8. CI/CD & Containerization
