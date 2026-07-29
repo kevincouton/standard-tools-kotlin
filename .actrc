@@ -1,0 +1,3 @@
+--container-runtime podman
+--container-daemon-socket unix://{{env.HOME}}/.local/share/containers/podman/machine/podman.sock
+--container-architecture linux/amd64
