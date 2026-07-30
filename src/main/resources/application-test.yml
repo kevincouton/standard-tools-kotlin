@@ -10,6 +10,18 @@ spring:
     server:
       port: 0
 
+standard-tools:
+  market-data:
+    default-provider: stub
+    cache-ttl: 5m
+    providers:
+      yfinance:
+        enabled: false
+      polygon:
+        enabled: false
+      bloomberg:
+        enabled: false
+
 logging:
   level:
     org.testcontainers: INFO
