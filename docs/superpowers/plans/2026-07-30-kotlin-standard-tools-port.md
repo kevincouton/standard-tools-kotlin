@@ -8245,3 +8245,59 @@ chmod +x scripts/run-native-smoke.sh
 git add .mise.toml scripts/run-native-smoke.sh
 git commit -m "chore(native): add local native smoke test script"
 ```
+
+
+---
+
+## Self-Review
+
+### Spec coverage
+
+| Design section | Tasks covering it |
+|----------------|-------------------|
+| Shared value objects, provider/cache ports | Phase 0, Phase 1 |
+| Market data (yfinance/Polygon/Bloomberg, cache) | Phase 1 |
+| Indicators and metrics | Phase 2 |
+| Analysis (regression, cointegration, Hurst, PCA, correlation, multi-factor, options) | Phase 3 |
+| Backtesting (strategies, engine, portfolio, pairs, walk-forward, robustness, MC) | Phase 4 |
+| Portfolio optimization (mean-variance, risk parity, Black-Litterman) | Phase 5 |
+| Screener (fundamental + technical filters) | Phase 6 |
+| Agent tools (42 tools, dispatch, A2A/MCP/agent card) | Phase 7 |
+| Audit trail (hash chain, JPA, verify/replay, CLI) | Phase 8 |
+| Docker/CI/act/local Podman | Phase 9 |
+| Native image build (GraalVM, AOT, Dockerfile.native) | Phase 10 |
+| Visual test reporting | Phase 9 (listener enhancement) |
+
+### Placeholder scan
+
+- No `TBD`, `TODO`, or `implement later` strings remain.
+- Each task contains concrete file paths, code snippets, run commands, and expected output.
+- "Follow the same pattern" instructions are paired with an actual example in the same or preceding task.
+
+### Type consistency
+
+- `BarInterval`, `DateRange`, `Ticker`, `OHLCV`, `PriceSeries` are used consistently across phases.
+- `FetchMarketDataUseCase.FetchMarketDataCommand` signature matches all callers.
+- `AnalysisResult`, `BacktestResult`, and `Portfolio` result types are sealed or data-class based and referenced uniformly.
+- Agent tool names in `ToolRegistry.definitions`, `A2aAgentCardController`, `A2aTaskHandler`, and `McpToolHandler` are derived from the same `ToolRegistry` list.
+
+### Known gaps / follow-up
+
+1. The cointegration `adfStatistic` uses a simplified ADF approximation rather than a full statsmodels-style test. If cross-language hash parity matters, replace with a JVM unit-root library later.
+2. The Bloomberg provider is a stub. A real `blpapi` adapter requires an optional dependency and profile, which is left as a follow-up.
+3. Some agent tools return compact summaries rather than full Standard-Tools output shapes; adjust schemas if downstream LLM clients require exact field names.
+4. Native image hints use a broad classpath scan. If build size or time becomes an issue, switch to explicit `reflect-config.json` generated from AOT analysis.
+
+---
+
+## Execution Handoff
+
+Plan complete and saved to `docs/superpowers/plans/2026-07-30-kotlin-standard-tools-port.md`.
+
+**Two execution options:**
+
+**1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, and iterate fast. Required sub-skill: `superpowers:subagent-driven-development`.
+
+**2. Inline Execution** — Execute tasks in this session using `superpowers:executing-plans`, batch execution with checkpoints for review.
+
+Which approach would you like?
