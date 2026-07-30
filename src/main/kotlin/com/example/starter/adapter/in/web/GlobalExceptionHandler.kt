@@ -2,6 +2,7 @@ package com.example.starter.adapter.`in`.web
 
 import com.example.starter.domain.exception.InvalidOrderStateException
 import com.example.starter.domain.exception.OrderNotFoundException
+import com.example.starter.shared.domain.QuantError
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -29,6 +30,13 @@ class GlobalExceptionHandler {
     fun handleBadRequest(ex: IllegalArgumentException): ProblemDetail {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.message ?: "Bad request").apply {
             title = "Bad Request"
+        }
+    }
+
+    @ExceptionHandler(QuantError::class)
+    fun handleQuantError(ex: QuantError): ProblemDetail {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.message ?: "Quant error").apply {
+            title = "Quant Error"
         }
     }
 
