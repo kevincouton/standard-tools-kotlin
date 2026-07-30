@@ -4,6 +4,10 @@ import com.example.starter.application.port.inbound.CancelOrderUseCase
 import com.example.starter.application.port.inbound.CreateOrderUseCase
 import com.example.starter.application.port.inbound.GetOrderUseCase
 import com.example.starter.domain.OrderItem
+import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
+import com.example.starter.shared.domain.BarInterval
+import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.Ticker
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -11,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 
 @RestController
@@ -18,7 +23,8 @@ import java.util.UUID
 class A2aTaskHandler(
     private val createOrderUseCase: CreateOrderUseCase,
     private val getOrderUseCase: GetOrderUseCase,
-    private val cancelOrderUseCase: CancelOrderUseCase
+    private val cancelOrderUseCase: CancelOrderUseCase,
+    private val fetchMarketDataUseCase: FetchMarketDataUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -61,6 +67,35 @@ class A2aTaskHandler(
                     ?: throw IllegalArgumentException("orderId required")
                 cancelOrderUseCase.cancelOrder(UUID.fromString(orderId))
                     .let { A2aOrderSkillMapper.toTaskResult(it) }
+            }
+            "marketdata-fetch" -> {
+                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val exchange = params["exchange"] as? String
+                val startDate = params["startDate"] as? String ?: throw IllegalArgumentException("startDate required")
+                val endDate = params["endDate"] as? String ?: throw IllegalArgumentException("endDate required")
+                val interval = params["interval"] as? String ?: "DAILY"
+                val provider = params["provider"] as? String
+                val series = fetchMarketDataUseCase.fetch(
+                    FetchMarketDataUseCase.FetchMarketDataCommand(
+                        ticker = Ticker(symbol, exchange),
+                        range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
+                        interval = BarInterval.valueOf(interval.uppercase()),
+                        provider = provider
+                    )
+                )
+                mapOf(
+                    "symbol" to symbol,
+                    "bars" to series.map {
+                        mapOf(
+                            "date" to it.date.toString(),
+                            "open" to it.open.toPlainString(),
+                            "high" to it.high.toPlainString(),
+                            "low" to it.low.toPlainString(),
+                            "close" to it.close.toPlainString(),
+                            "volume" to it.volume
+                        )
+                    }
+                )
             }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
         }
