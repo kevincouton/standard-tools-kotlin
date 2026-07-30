@@ -1,0 +1,126 @@
+name: CI
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        id: unit-tests
+        run: ./gradlew test
+
+      - name: Run integration tests
+        id: integration-tests
+        run: ./gradlew integrationTest
+
+      - name: Run E2E tests
+        id: e2e-tests
+        run: ./gradlew e2eTest
+
+      - name: Generate Allure report
+        run: ./gradlew allureReport
+        if: always()
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          retention-days: 14
+          path: |
+            build/reports/tests/
+            build/reports/allure/
+            build/allure-results/
+
+      - name: Set up Podman
+        run: |
+          if ! command -v podman &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y podman
+          fi
+
+      - name: Build container image
+        run: podman build -t kotlin-grpc-rest-starter:${{ github.sha }} .
+
+      - name: Smoke test container image
+        id: smoke-test
+        run: |
+          podman network create starter-net || true
+          podman run -d --name starter-postgres --network starter-net \
+            -e POSTGRES_DB=starter -e POSTGRES_USER=starter -e POSTGRES_PASSWORD=starter \
+            postgres:18
+          for i in {1..30}; do
+            if podman exec starter-postgres pg_isready -U starter -d starter; then
+              echo "Postgres is ready"
+              break
+            fi
+            sleep 2
+          done
+          if ! podman exec starter-postgres pg_isready -U starter -d starter; then
+            echo "Postgres did not become ready" >&2
+            podman logs starter-postgres
+            exit 1
+          fi
+          podman run -d --name starter-smoke --network starter-net \
+            -p 8080:8080 -p 9090:9090 \
+            -e DB_HOST=starter-postgres -e DB_PORT=5432 -e DB_NAME=starter \
+            -e DB_USER=starter -e DB_PASS=starter \
+            kotlin-grpc-rest-starter:${{ github.sha }}
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8080/.well-known/agent.json; then
+              echo "Smoke test passed"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Smoke test failed" >&2
+          podman logs starter-postgres
+          podman logs starter-smoke
+          exit 1
+
+      - name: Clean up smoke test containers
+        if: always()
+        run: |
+          podman stop starter-smoke starter-postgres || true
+          podman rm starter-smoke starter-postgres || true
+          podman network rm starter-net || true
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Layer | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit | ${{ steps.unit-tests.outcome == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration | ${{ steps.integration-tests.outcome == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E | ${{ steps.e2e-tests.outcome == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Smoke | ${{ steps.smoke-test.outcome == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: kotlin-grpc-rest-starter:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Reproduce locally: scripts/run-act.sh" >> $GITHUB_STEP_SUMMARY
