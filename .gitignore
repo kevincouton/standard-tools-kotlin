@@ -48,3 +48,6 @@ allure-results/
 ### Local config / secrets ###
 .env
 *.log
+
+### Worktrees ###
+.worktrees/
