@@ -318,7 +318,10 @@ Flyway migrations under `src/main/resources/db/migration/`:
   - `org.nield:kotlin-statistics` for descriptive stats
 - Lazy evaluation and coroutine `Flow` for large series.
 - Caching for provider calls.
-- No C++/JNI/Kotlin/Native in v1.
+- No C++/JNI/Kotlin/Native acceleration in v1.
+- **Dual build artifacts:** The project produces both a classic JVM image and a GraalVM native image.
+  - **Classic JVM:** Default, highest compatibility, easier debugging, used for development and CI.
+  - **Native image:** Optimized startup and memory footprint, built in Phase 10 using Spring AOT + GraalVM Native Image. Requires explicit reflection/proxy hints for gRPC, JPA entities, provider adapters, and protobuf generated classes.
 
 ## 12. Testing Strategy
 
@@ -343,6 +346,7 @@ Synthetic OHLCV fixtures live in `src/test/kotlin/com/example/starter/testsuppor
 7. **Phase 7 — Agent tools:** tool definitions, dispatch, Pydantic-equivalent input/output models, all 42 tools mapped to subdomain use cases.
 8. **Phase 8 — Audit trail:** `DecisionRecord`, hash chain, JPA repository, verify/replay endpoints, CLI.
 9. **Phase 9 — Cross-cutting:** Docker/CI updates, README, end-to-end performance smoke tests, documentation.
+10. **Phase 10 — Native image build:** Add GraalVM Native Image support, Spring AOT hints for gRPC/JPA/providers, `Dockerfile.native`, and a CI job that builds both the classic JVM image and the native image.
 
 ## 14. File Structure (target)
 
@@ -388,6 +392,15 @@ src/test/kotlin/com/example/starter/testsupport/
 └── ScenarioLogger.kt
 ```
 
+Build artifacts:
+
+```
+Dockerfile              # classic JVM image via eclipse-temurin:25-jdk/jre
+Dockerfile.native       # GraalVM native image build
+scripts/build-image.sh  # default: classic JVM image
+scripts/build-native-image.sh
+```
+
 ## 15. Dependency Additions
 
 Additions to `gradle/libs.versions.toml` and `build.gradle.kts`:
@@ -400,16 +413,21 @@ Additions to `gradle/libs.versions.toml` and `build.gradle.kts`:
 - `okhttp` or `spring-webflux` (WebClient) — HTTP provider clients
 - `wiremock` — integration test mocking
 - `blpapi` (optional, `bloomberg` profile) — Bloomberg
+- `org.graalvm.buildtools.native` Gradle plugin — GraalVM Native Image
+- `spring-boot-graalvm` / Spring AOT processing — native hints
+- Paketo native buildpacks or GraalVM JDK 25 — native image builder
 
 ## 16. Out of Scope (v1)
 
-- C++/Numba/native acceleration
+- C++/Numba/native-code acceleration of numerical algorithms
 - Persistent OHLCV time-series database (TimescaleDB/InfluxDB)
 - Real-time streaming data/WebSocket providers
 - Options backtesting / multi-leg strategies
 - Distributed backtesting (Spark/Dask equivalent)
 - UI/dashboards
 - Authentication/authorization
+
+> **Note:** GraalVM Native Image is in scope as Phase 10, but the native-image smoke tests and AOT hints are added only after the classic JVM image is stable.
 
 ## 17. Risks and Mitigation
 
@@ -421,11 +439,14 @@ Additions to `gradle/libs.versions.toml` and `build.gradle.kts`:
 | JVM numeric performance vs Python/NumPy | Use primitive arrays, cache, coroutines; benchmark before optimizing |
 | Agent-tool model explosion | Centralize shared input/output models in `shared` and `agenttools` |
 | Audit hash chain correctness | Unit-test chain against known-good hashes; verify endpoint in E2E |
+| GraalVM native image build failures | Add AOT hints iteratively; keep native build in separate CI job; fallback to JVM image |
+| Long native-image build times | Cache native-image build layers; run native job only on main/release branches |
 
 ## 18. Success Criteria
 
-- All 9 phases implemented and committed.
+- All 10 phases implemented and committed.
 - Each phase has passing unit, integration, and E2E tests with visual summaries.
 - Every subdomain exposes at least one endpoint/skill/tool per protocol (REST, gRPC, A2A, MCP).
-- `scripts/build-image.sh` and GitHub Actions CI pass.
-- README documents all new endpoints and example requests.
+- `scripts/build-image.sh` (classic JVM) and GitHub Actions CI pass.
+- `scripts/build-native-image.sh` (GraalVM native) and its CI job pass.
+- README documents all new endpoints, example requests, and both image build options.
