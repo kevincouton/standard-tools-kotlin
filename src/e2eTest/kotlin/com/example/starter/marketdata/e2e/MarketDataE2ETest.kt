@@ -2,15 +2,15 @@ package com.example.starter.marketdata.e2e
 
 import com.example.starter.adapter.`in`.a2a.JsonRpcRequest
 import com.example.starter.adapter.`in`.mcp.McpJsonRpcRequest
+import com.example.starter.marketdata.adapter.out.yfinance.YFinanceMarketDataAdapter
 import com.example.starter.marketdata.grpc.MarketDataServiceGrpc
-import com.example.starter.shared.application.port.outbound.MarketDataProvider
-import com.example.starter.shared.domain.BarInterval
-import com.example.starter.shared.domain.DateRange
-import com.example.starter.shared.domain.PriceSeries
-import com.example.starter.shared.domain.Ticker
 import com.example.starter.testsupport.PostgresTestContainer
 import com.example.starter.testsupport.ScenarioLogger
-import com.example.starter.testsupport.fixtures.OhlcvFixtures
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import org.junit.jupiter.api.AfterEach
@@ -24,25 +24,32 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.TestPropertySource
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import strikt.api.expectThat
 import strikt.assertions.contains
 import strikt.assertions.hasSize
 import strikt.assertions.isEqualTo
-import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 @Tag("e2e")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @ActiveProfiles("test")
+@TestPropertySource(
+    properties = [
+        "standard-tools.market-data.default-provider=yfinance",
+        "standard-tools.market-data.providers.yfinance.enabled=true"
+    ]
+)
 @AutoConfigureWebTestClient
-@Import(MarketDataE2ETest.StubProviderConfig::class)
+@Import(MarketDataE2ETest.YFinanceStubConfig::class)
 class MarketDataE2ETest {
 
     @LocalGrpcServerPort
@@ -52,28 +59,50 @@ class MarketDataE2ETest {
     lateinit var webTestClient: org.springframework.test.web.reactive.server.WebTestClient
 
     @Autowired
-    lateinit var stubProvider: StubMarketDataProvider
+    lateinit var wireMockServer: WireMockServer
 
     private lateinit var grpcChannel: ManagedChannel
 
     @BeforeEach
-    fun setupChannel() {
+    fun setup() {
+        wireMockServer.resetAll()
+        wireMockServer.stubFor(
+            get(urlMatching("/v7/finance/download/.*"))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "text/csv")
+                        .withBody(
+                            """
+                            Date,Open,High,Low,Close,Adj Close,Volume
+                            2024-01-02,100.00,102.00,99.00,101.00,101.00,1000000
+                            2024-01-03,101.00,103.00,100.00,102.00,102.00,1100000
+                            2024-01-04,102.00,104.00,101.00,103.00,103.00,1200000
+                            """.trimIndent()
+                        )
+                )
+        )
         grpcChannel = ManagedChannelBuilder.forAddress(LOCALHOST, grpcPort)
             .usePlaintext()
             .build()
     }
 
     @AfterEach
-    fun tearDownChannel() {
+    fun tearDown() {
         grpcChannel.shutdownNow()
         grpcChannel.awaitTermination(5, TimeUnit.SECONDS)
     }
 
     @TestConfiguration
-    class StubProviderConfig {
+    class YFinanceStubConfig {
 
-        @Bean
-        fun stubMarketDataProvider(): MarketDataProvider = StubMarketDataProvider()
+        @Bean(initMethod = "start", destroyMethod = "stop")
+        fun wireMockServer(): WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
+
+        @Bean(name = ["YFinanceMarketDataAdapter"])
+        @Primary
+        fun yFinanceMarketDataAdapter(wireMockServer: WireMockServer): YFinanceMarketDataAdapter =
+            YFinanceMarketDataAdapter(baseUrl = wireMockServer.baseUrl())
     }
 
     companion object {
@@ -94,8 +123,6 @@ class MarketDataE2ETest {
     @Test
     fun `market data across REST gRPC A2A and MCP`() {
         val logger = ScenarioLogger("Market data multi-protocol")
-        val series = OhlcvFixtures.dailySeries(days = 3)
-        stubProvider.returns(series)
 
         // REST
         val restResult = webTestClient.get().uri { builder ->
@@ -179,18 +206,5 @@ class MarketDataE2ETest {
         logger.step("MCP", "tools/call marketdata_fetch(AAPL)", "success")
 
         logger.print()
-    }
-
-    class StubMarketDataProvider : MarketDataProvider {
-        override val name: String = "stub"
-        private var nextResponse: PriceSeries = emptyList()
-
-        fun returns(series: PriceSeries) {
-            nextResponse = series
-        }
-
-        override fun fetch(ticker: Ticker, range: DateRange, interval: BarInterval): PriceSeries {
-            return nextResponse
-        }
     }
 }
