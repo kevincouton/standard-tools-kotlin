@@ -16,5 +16,17 @@ spring:
     server:
       port: 9090
 
+standard-tools:
+  market-data:
+    default-provider: yfinance
+    cache-ttl: 1h
+    providers:
+      yfinance:
+        enabled: true
+      polygon:
+        enabled: false
+      bloomberg:
+        enabled: false
+
 server:
   port: 8080
