@@ -41,5 +41,5 @@ object OhlcvFixtures {
         return DateRange(start, start.plusDays(days.toLong() - 1))
     }
 
-    fun defaultInterval(): BarInterval = BarInterval.DAILY
+    val DEFAULT_INTERVAL: BarInterval = BarInterval.DAILY
 }
