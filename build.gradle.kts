@@ -55,6 +55,12 @@ dependencies {
     testImplementation(libs.strikt.core)
     testImplementation(libs.allure.junit5)
     testImplementation(libs.junit.platform.launcher)
+
+    implementation(libs.commons.math3)
+    implementation(libs.tablesaw.core)
+    implementation(libs.caffeine)
+    implementation(libs.okhttp)
+    testImplementation(libs.wiremock)
 }
 
 sourceSets {
