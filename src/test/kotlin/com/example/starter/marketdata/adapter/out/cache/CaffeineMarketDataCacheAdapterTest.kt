@@ -35,4 +35,12 @@ class CaffeineMarketDataCacheAdapterTest {
     fun `get missing key returns null`() {
         expectThat(cache.get(key)).isNull()
     }
+
+    @Test
+    fun `entry expires after ttl`() {
+        cache.put(key, series, Duration.ofMillis(100))
+        expectThat(cache.get(key)).isEqualTo(series)
+        Thread.sleep(150)
+        expectThat(cache.get(key)).isNull()
+    }
 }
