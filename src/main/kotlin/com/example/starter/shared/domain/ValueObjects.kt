@@ -45,6 +45,8 @@ data class OHLCV(
         require(low >= BigDecimal.ZERO) { "low must not be negative" }
         require(close >= BigDecimal.ZERO) { "close must not be negative" }
         require(volume >= 0) { "volume must not be negative" }
+        require(high >= maxOf(open, close)) { "high must not be less than max(open, close)" }
+        require(low <= minOf(open, close)) { "low must not be greater than min(open, close)" }
     }
 }
 
