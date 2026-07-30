@@ -114,6 +114,11 @@ tasks.register<Test>("integrationTest") {
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
     classpath = sourceSets["integrationTest"].runtimeClasspath
     shouldRunAfter("test")
+    environment(
+        "DOCKER_HOST",
+        System.getenv("DOCKER_HOST") ?: "unix://${System.getProperty("user.home")}/.local/share/containers/podman/machine/podman.sock"
+    )
+    environment("TESTCONTAINERS_RYUK_DISABLED", System.getenv("TESTCONTAINERS_RYUK_DISABLED") ?: "true")
 }
 
 tasks.register<Test>("e2eTest") {
@@ -122,6 +127,11 @@ tasks.register<Test>("e2eTest") {
     testClassesDirs = sourceSets["e2eTest"].output.classesDirs
     classpath = sourceSets["e2eTest"].runtimeClasspath
     shouldRunAfter("integrationTest")
+    environment(
+        "DOCKER_HOST",
+        System.getenv("DOCKER_HOST") ?: "unix://${System.getProperty("user.home")}/.local/share/containers/podman/machine/podman.sock"
+    )
+    environment("TESTCONTAINERS_RYUK_DISABLED", System.getenv("TESTCONTAINERS_RYUK_DISABLED") ?: "true")
 }
 
 tasks.withType<Test> {
