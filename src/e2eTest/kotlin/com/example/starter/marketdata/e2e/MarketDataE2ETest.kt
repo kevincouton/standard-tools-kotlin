@@ -4,6 +4,11 @@ import com.example.starter.adapter.`in`.a2a.JsonRpcRequest
 import com.example.starter.adapter.`in`.mcp.McpJsonRpcRequest
 import com.example.starter.marketdata.adapter.out.yfinance.YFinanceMarketDataAdapter
 import com.example.starter.marketdata.grpc.MarketDataServiceGrpc
+import com.example.starter.shared.application.port.outbound.MarketDataProvider
+import com.example.starter.shared.domain.BarInterval
+import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.PriceSeries
+import com.example.starter.shared.domain.Ticker
 import com.example.starter.testsupport.PostgresTestContainer
 import com.example.starter.testsupport.ScenarioLogger
 import com.github.tomakehurst.wiremock.WireMockServer
@@ -45,8 +50,8 @@ import java.util.concurrent.TimeUnit
 @ActiveProfiles("test")
 @TestPropertySource(
     properties = [
-        "standard-tools.market-data.default-provider=yfinance",
-        "standard-tools.market-data.providers.yfinance.enabled=false"
+        "standard-tools.market-data.default-provider=wiremock",
+        "standard-tools.market-data.providers.wiremock.enabled=true"
     ]
 )
 @AutoConfigureWebTestClient
@@ -101,9 +106,19 @@ class MarketDataE2ETest {
         fun wireMockServer(): WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
         @Bean
-        @Primary
-        fun yFinanceMarketDataAdapter(client: OkHttpClient, wireMockServer: WireMockServer): YFinanceMarketDataAdapter =
-            YFinanceMarketDataAdapter(client = client, baseUrl = wireMockServer.baseUrl())
+        fun wiremockMarketDataProvider(client: OkHttpClient, wireMockServer: WireMockServer): MarketDataProvider =
+            WireMockYFinanceProvider(client, wireMockServer.baseUrl())
+    }
+
+    class WireMockYFinanceProvider(
+        client: OkHttpClient,
+        baseUrl: String
+    ) : MarketDataProvider {
+        override val name: String = "wiremock"
+        private val delegate = YFinanceMarketDataAdapter(client = client, baseUrl = baseUrl)
+
+        override fun fetch(ticker: Ticker, range: DateRange, interval: BarInterval): PriceSeries =
+            delegate.fetch(ticker, range, interval)
     }
 
     companion object {
