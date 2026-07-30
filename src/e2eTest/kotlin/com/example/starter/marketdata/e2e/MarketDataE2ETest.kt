@@ -13,6 +13,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
+import okhttp3.OkHttpClient
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
@@ -45,7 +46,7 @@ import java.util.concurrent.TimeUnit
 @TestPropertySource(
     properties = [
         "standard-tools.market-data.default-provider=yfinance",
-        "standard-tools.market-data.providers.yfinance.enabled=true"
+        "standard-tools.market-data.providers.yfinance.enabled=false"
     ]
 )
 @AutoConfigureWebTestClient
@@ -99,10 +100,10 @@ class MarketDataE2ETest {
         @Bean(initMethod = "start", destroyMethod = "stop")
         fun wireMockServer(): WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
-        @Bean(name = ["YFinanceMarketDataAdapter"])
+        @Bean
         @Primary
-        fun yFinanceMarketDataAdapter(wireMockServer: WireMockServer): YFinanceMarketDataAdapter =
-            YFinanceMarketDataAdapter(baseUrl = wireMockServer.baseUrl())
+        fun yFinanceMarketDataAdapter(client: OkHttpClient, wireMockServer: WireMockServer): YFinanceMarketDataAdapter =
+            YFinanceMarketDataAdapter(client = client, baseUrl = wireMockServer.baseUrl())
     }
 
     companion object {

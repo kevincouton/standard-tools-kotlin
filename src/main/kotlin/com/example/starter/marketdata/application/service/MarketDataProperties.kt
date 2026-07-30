@@ -11,5 +11,6 @@ data class MarketDataProperties(
 ) {
     data class ProviderConfig(val enabled: Boolean = false, val apiKey: String? = null)
 
-    fun isEnabled(name: String): Boolean = providers[name]?.enabled ?: (name == defaultProvider)
+    fun isEnabled(name: String): Boolean =
+        if (name == defaultProvider) true else providers[name]?.enabled ?: false
 }

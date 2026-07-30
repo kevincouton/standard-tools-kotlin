@@ -56,15 +56,16 @@ class MarketDataServiceTest {
     }
 
     @Test
-    fun `fetch throws when provider not available`() {
-        every { provider.name } returns "yfinance"
+    fun `fetch throws when provider is disabled`() {
+        every { provider.name } returns "polygon"
         val disabledProperties = properties.copy(
-            providers = mapOf("yfinance" to MarketDataProperties.ProviderConfig(enabled = false))
+            defaultProvider = "yfinance",
+            providers = mapOf("polygon" to MarketDataProperties.ProviderConfig(enabled = false))
         )
         val serviceWithDisabled = MarketDataService(listOf(provider), cache, disabledProperties)
 
         org.junit.jupiter.api.assertThrows<ProviderNotAvailableException> {
-            serviceWithDisabled.fetch(command())
+            serviceWithDisabled.fetch(command().copy(provider = "polygon"))
         }
     }
 

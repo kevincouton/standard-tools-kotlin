@@ -7,6 +7,7 @@ import com.example.starter.marketdata.grpc.MarketDataServiceGrpcKt
 import com.example.starter.marketdata.grpc.OHLCVBar
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,11 +20,12 @@ class MarketDataGrpcService(
 ) : MarketDataServiceGrpcKt.MarketDataServiceCoroutineImplBase() {
 
     override suspend fun fetchMarketData(request: FetchMarketDataRequest): FetchMarketDataResponse = withContext(Dispatchers.IO) {
+        validateMarketDataInput(request.symbol, request.interval)
         val series = fetchMarketDataUseCase.fetch(
             FetchMarketDataUseCase.FetchMarketDataCommand(
                 ticker = Ticker(request.symbol, request.exchange.takeIf { it.isNotBlank() }),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = parseInterval(request.interval),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         )
@@ -40,5 +42,19 @@ class MarketDataGrpcService(
                     .build()
             })
             .build()
+    }
+
+    private fun validateMarketDataInput(symbol: String, interval: String) {
+        if (symbol.isBlank()) {
+            throw InvalidCommandException("symbol must not be blank")
+        }
+        parseInterval(interval)
+    }
+
+    private fun parseInterval(interval: String): BarInterval {
+        return BarInterval.entries.find { it.name.equals(interval.trim(), ignoreCase = true) }
+            ?: throw InvalidCommandException(
+                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
+            )
     }
 }

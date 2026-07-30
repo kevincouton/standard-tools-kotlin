@@ -1,5 +1,6 @@
 package com.example.starter.adapter.`in`.mcp
 
+import com.example.starter.shared.domain.InvalidCommandException
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
@@ -41,6 +42,8 @@ class McpMessageController(
                 }
                 else -> error(request.id, -32601, "Method not found")
             }
+        } catch (ex: InvalidCommandException) {
+            error(request.id, -32602, ex.message ?: "Invalid params")
         } catch (ex: IllegalArgumentException) {
             error(request.id, -32602, ex.message ?: "Invalid params")
         } catch (ex: Exception) {

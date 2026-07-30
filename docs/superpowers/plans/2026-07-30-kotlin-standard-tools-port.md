@@ -293,7 +293,6 @@ git commit -m "test: add OHLCV fixtures for quant tests"
 - Create: `src/main/kotlin/com/example/starter/marketdata/adapter/in/a2a/MarketDataA2aHandler.kt`
 - Create: `src/main/kotlin/com/example/starter/marketdata/adapter/in/mcp/MarketDataMcpHandler.kt`
 - Create: `src/main/proto/marketdata/market_data_service.proto`
-- Create: `src/main/resources/db/migration/V2__create_marketdata_reference_tables.sql`
 - Create: `src/test/kotlin/com/example/starter/marketdata/domain/...`, `src/integrationTest/...`, `src/e2eTest/...`
 
 ### Task 1.1: Define shared outbound ports

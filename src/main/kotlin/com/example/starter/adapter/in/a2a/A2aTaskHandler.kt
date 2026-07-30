@@ -7,6 +7,7 @@ import com.example.starter.domain.OrderItem
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -41,6 +42,8 @@ class A2aTaskHandler(
                 "tasks/cancel" -> handleTasksCancel(request)
                 else -> JsonRpcResponse.error(request.id, -32601, "Method not found")
             }
+        } catch (ex: InvalidCommandException) {
+            JsonRpcResponse.error(request.id, -32602, ex.message ?: "Invalid params")
         } catch (ex: IllegalArgumentException) {
             JsonRpcResponse.error(request.id, -32602, ex.message ?: "Invalid params")
         } catch (ex: Exception) {
@@ -69,17 +72,18 @@ class A2aTaskHandler(
                     .let { A2aOrderSkillMapper.toTaskResult(it) }
             }
             "marketdata-fetch" -> {
-                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val symbol = params["symbol"] as? String ?: throw InvalidCommandException("symbol required")
+                if (symbol.isBlank()) throw InvalidCommandException("symbol must not be blank")
                 val exchange = params["exchange"] as? String
-                val startDate = params["startDate"] as? String ?: throw IllegalArgumentException("startDate required")
-                val endDate = params["endDate"] as? String ?: throw IllegalArgumentException("endDate required")
+                val startDate = params["startDate"] as? String ?: throw InvalidCommandException("startDate required")
+                val endDate = params["endDate"] as? String ?: throw InvalidCommandException("endDate required")
                 val interval = params["interval"] as? String ?: "DAILY"
                 val provider = params["provider"] as? String
                 val series = fetchMarketDataUseCase.fetch(
                     FetchMarketDataUseCase.FetchMarketDataCommand(
                         ticker = Ticker(symbol, exchange),
                         range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
-                        interval = BarInterval.valueOf(interval.uppercase()),
+                        interval = parseInterval(interval),
                         provider = provider
                     )
                 )
@@ -126,6 +130,13 @@ class A2aTaskHandler(
     private fun handleTasksCancel(request: JsonRpcRequest): JsonRpcResponse {
         val params = (request.params ?: emptyMap()) + ("skillId" to "cancel-order")
         return handleTasksSend(request.copy(method = "tasks/send", params = params))
+    }
+
+    private fun parseInterval(interval: String): BarInterval {
+        return BarInterval.entries.find { it.name.equals(interval.trim(), ignoreCase = true) }
+            ?: throw InvalidCommandException(
+                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
+            )
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -7,6 +7,7 @@ import com.example.starter.domain.OrderItem
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
@@ -119,17 +120,18 @@ class McpToolHandler(
     )
 
     private fun handleMarketDataFetch(arguments: Map<String, Any>): Map<String, Any> {
-        val symbol = arguments["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+        val symbol = arguments["symbol"] as? String ?: throw InvalidCommandException("symbol required")
+        if (symbol.isBlank()) throw InvalidCommandException("symbol must not be blank")
         val exchange = arguments["exchange"] as? String
-        val startDate = arguments["startDate"] as? String ?: throw IllegalArgumentException("startDate required")
-        val endDate = arguments["endDate"] as? String ?: throw IllegalArgumentException("endDate required")
+        val startDate = arguments["startDate"] as? String ?: throw InvalidCommandException("startDate required")
+        val endDate = arguments["endDate"] as? String ?: throw InvalidCommandException("endDate required")
         val interval = arguments["interval"] as? String ?: "DAILY"
         val provider = arguments["provider"] as? String
         val series = fetchMarketDataUseCase.fetch(
             FetchMarketDataUseCase.FetchMarketDataCommand(
                 ticker = Ticker(symbol, exchange),
                 range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
-                interval = BarInterval.valueOf(interval.uppercase()),
+                interval = parseInterval(interval),
                 provider = provider
             )
         )
@@ -141,6 +143,13 @@ class McpToolHandler(
                 )
             )
         )
+    }
+
+    private fun parseInterval(interval: String): BarInterval {
+        return BarInterval.entries.find { it.name.equals(interval.trim(), ignoreCase = true) }
+            ?: throw InvalidCommandException(
+                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
+            )
     }
 
     @Suppress("UNCHECKED_CAST")

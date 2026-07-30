@@ -4,6 +4,7 @@ import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
 import com.github.tomakehurst.wiremock.WireMockServer
+import okhttp3.OkHttpClient
 import com.github.tomakehurst.wiremock.client.WireMock
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -24,7 +25,7 @@ class YFinanceMarketDataAdapterTest {
     @BeforeEach
     fun setup() {
         wireMock.start()
-        adapter = YFinanceMarketDataAdapter(baseUrl = "http://localhost:${wireMock.port()}")
+        adapter = YFinanceMarketDataAdapter(client = OkHttpClient(), baseUrl = "http://localhost:${wireMock.port()}")
     }
 
     @AfterEach

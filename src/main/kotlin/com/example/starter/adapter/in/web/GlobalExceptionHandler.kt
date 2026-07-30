@@ -2,6 +2,7 @@ package com.example.starter.adapter.`in`.web
 
 import com.example.starter.domain.exception.InvalidOrderStateException
 import com.example.starter.domain.exception.OrderNotFoundException
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.QuantError
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -11,6 +12,13 @@ import org.springframework.web.bind.support.WebExchangeBindException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(InvalidCommandException::class)
+    fun handleInvalidCommand(ex: InvalidCommandException): ProblemDetail {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.message ?: "Invalid command").apply {
+            title = "Invalid Command"
+        }
+    }
 
     @ExceptionHandler(OrderNotFoundException::class)
     fun handleNotFound(ex: OrderNotFoundException): ProblemDetail {
