@@ -3,10 +3,12 @@ package com.example.starter.indicators.domain
 import com.example.starter.shared.domain.OHLCV
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
+import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 
+@Component
 class IndicatorCalculator {
 
     fun calculate(name: String, series: PriceSeries, parameters: Map<String, Any>): IndicatorResult {

@@ -3,11 +3,13 @@ package com.example.starter.metrics.domain
 import com.example.starter.shared.domain.OHLCV
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
+import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+@Component
 class RiskReturnCalculator {
 
     fun returnMetrics(series: PriceSeries, riskFreeRate: Double = 0.02): ReturnMetrics {
@@ -63,6 +65,6 @@ class RiskReturnCalculator {
             if (price > peak) peak = price
             drawdowns.add((peak - price) / peak)
         }
-        return drawdowns.maxOrNull() ?: 0.0 to drawdowns
+        return (drawdowns.maxOrNull() ?: 0.0) to drawdowns
     }
 }
