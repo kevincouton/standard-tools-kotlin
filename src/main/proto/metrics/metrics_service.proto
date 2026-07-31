@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package com.example.starter.metrics.grpc;
+option java_package = "com.example.starter.metrics.grpc";
+option java_multiple_files = true;
+
+service MetricsService {
+  rpc CalculateRisk (CalculateRiskRequest) returns (RiskMetricsResponse);
+  rpc CalculateReturn (CalculateReturnRequest) returns (ReturnMetricsResponse);
+}
+
+message CalculateRiskRequest {
+  string symbol = 1;
+  string exchange = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+  double risk_free_rate = 7;
+}
+
+message CalculateReturnRequest {
+  string symbol = 1;
+  string exchange = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+}
+
+message RiskMetricsResponse {
+  string sharpe_ratio = 1;
+  string sortino_ratio = 2;
+  string max_drawdown = 3;
+  string calmar_ratio = 4;
+  string var95 = 5;
+  string cvar95 = 6;
+  string volatility = 7;
+}
+
+message ReturnMetricsResponse {
+  string cumulative_return = 1;
+  string cagr = 2;
+  string annualized_volatility = 3;
+}

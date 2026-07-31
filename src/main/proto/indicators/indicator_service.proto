@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package com.example.starter.indicators.grpc;
+option java_package = "com.example.starter.indicators.grpc";
+option java_multiple_files = true;
+
+service IndicatorService {
+  rpc CalculateIndicator (CalculateIndicatorRequest) returns (IndicatorResponse);
+}
+
+message CalculateIndicatorRequest {
+  string symbol = 1;
+  string exchange = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string indicator = 6;
+  map<string, string> parameters = 7;
+  string provider = 8;
+}
+
+message IndicatorValue {
+  string date = 1;
+  string value = 2;
+}
+
+message IndicatorResponse {
+  string indicator = 1;
+  repeated IndicatorValue values = 2;
+}

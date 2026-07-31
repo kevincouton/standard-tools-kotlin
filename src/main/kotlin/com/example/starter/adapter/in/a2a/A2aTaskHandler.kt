@@ -4,7 +4,9 @@ import com.example.starter.application.port.inbound.CancelOrderUseCase
 import com.example.starter.application.port.inbound.CreateOrderUseCase
 import com.example.starter.application.port.inbound.GetOrderUseCase
 import com.example.starter.domain.OrderItem
+import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
+import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.InvalidCommandException
@@ -25,7 +27,9 @@ class A2aTaskHandler(
     private val createOrderUseCase: CreateOrderUseCase,
     private val getOrderUseCase: GetOrderUseCase,
     private val cancelOrderUseCase: CancelOrderUseCase,
-    private val fetchMarketDataUseCase: FetchMarketDataUseCase
+    private val fetchMarketDataUseCase: FetchMarketDataUseCase,
+    private val calculateIndicatorUseCase: CalculateIndicatorUseCase,
+    private val calculateMetricsUseCase: CalculateMetricsUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -99,6 +103,86 @@ class A2aTaskHandler(
                             "volume" to it.volume
                         )
                     }
+                )
+            }
+            "indicators-calculate" -> {
+                val symbol = params["symbol"] as? String ?: throw InvalidCommandException("symbol required")
+                if (symbol.isBlank()) throw InvalidCommandException("symbol must not be blank")
+                val exchange = params["exchange"] as? String
+                val startDate = params["startDate"] as? String ?: throw InvalidCommandException("startDate required")
+                val endDate = params["endDate"] as? String ?: throw InvalidCommandException("endDate required")
+                val interval = params["interval"] as? String ?: "DAILY"
+                val indicator = params["indicator"] as? String ?: throw InvalidCommandException("indicator required")
+                val parameters = (params["parameters"] as? Map<String, Any>) ?: emptyMap()
+                val provider = params["provider"] as? String
+                val result = calculateIndicatorUseCase.calculate(
+                    CalculateIndicatorUseCase.CalculateIndicatorCommand(
+                        ticker = Ticker(symbol, exchange),
+                        range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
+                        interval = parseInterval(interval),
+                        indicator = indicator,
+                        parameters = parameters,
+                        provider = provider
+                    )
+                )
+                mapOf(
+                    "indicator" to result.indicator,
+                    "values" to result.values.map {
+                        mapOf(
+                            "date" to it.date.toString(),
+                            "value" to (it.value?.toPlainString() ?: "")
+                        )
+                    }
+                )
+            }
+            "metrics-risk" -> {
+                val symbol = params["symbol"] as? String ?: throw InvalidCommandException("symbol required")
+                if (symbol.isBlank()) throw InvalidCommandException("symbol must not be blank")
+                val exchange = params["exchange"] as? String
+                val startDate = params["startDate"] as? String ?: throw InvalidCommandException("startDate required")
+                val endDate = params["endDate"] as? String ?: throw InvalidCommandException("endDate required")
+                val interval = params["interval"] as? String ?: "DAILY"
+                val riskFreeRate = (params["riskFreeRate"] as? Number)?.toDouble() ?: 0.02
+                val provider = params["provider"] as? String
+                val result = calculateMetricsUseCase.calculateRisk(
+                    CalculateMetricsUseCase.CalculateRiskCommand(
+                        ticker = Ticker(symbol, exchange),
+                        range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
+                        interval = parseInterval(interval),
+                        riskFreeRate = riskFreeRate,
+                        provider = provider
+                    )
+                )
+                mapOf(
+                    "sharpeRatio" to (result.sharpeRatio?.toPlainString() ?: ""),
+                    "sortinoRatio" to (result.sortinoRatio?.toPlainString() ?: ""),
+                    "maxDrawdown" to result.maxDrawdown.toPlainString(),
+                    "calmarRatio" to (result.calmarRatio?.toPlainString() ?: ""),
+                    "var95" to result.var95.toPlainString(),
+                    "cvar95" to result.cvar95.toPlainString(),
+                    "volatility" to result.volatility.toPlainString()
+                )
+            }
+            "metrics-return" -> {
+                val symbol = params["symbol"] as? String ?: throw InvalidCommandException("symbol required")
+                if (symbol.isBlank()) throw InvalidCommandException("symbol must not be blank")
+                val exchange = params["exchange"] as? String
+                val startDate = params["startDate"] as? String ?: throw InvalidCommandException("startDate required")
+                val endDate = params["endDate"] as? String ?: throw InvalidCommandException("endDate required")
+                val interval = params["interval"] as? String ?: "DAILY"
+                val provider = params["provider"] as? String
+                val result = calculateMetricsUseCase.calculateReturn(
+                    CalculateMetricsUseCase.CalculateReturnCommand(
+                        ticker = Ticker(symbol, exchange),
+                        range = DateRange(LocalDate.parse(startDate), LocalDate.parse(endDate)),
+                        interval = parseInterval(interval),
+                        provider = provider
+                    )
+                )
+                mapOf(
+                    "cumulativeReturn" to result.cumulativeReturn.toPlainString(),
+                    "cagr" to (result.cagr?.toPlainString() ?: ""),
+                    "annualizedVolatility" to result.annualizedVolatility.toPlainString()
                 )
             }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
