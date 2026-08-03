@@ -9,6 +9,8 @@ import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
 import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
 import com.example.starter.portfolio.application.port.inbound.OptimizePortfolioUseCase
+import com.example.starter.screener.application.port.inbound.ScreenStocksUseCase
+import com.example.starter.screener.domain.ScreenCriteria
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
 import com.example.starter.shared.domain.BarInterval
@@ -30,7 +32,8 @@ class McpToolHandler(
     private val calculateMetricsUseCase: CalculateMetricsUseCase,
     private val runAnalysisUseCase: RunAnalysisUseCase,
     private val runBacktestUseCase: RunBacktestUseCase,
-    private val optimizePortfolioUseCase: OptimizePortfolioUseCase
+    private val optimizePortfolioUseCase: OptimizePortfolioUseCase,
+    private val screenStocksUseCase: ScreenStocksUseCase
 ) {
 
     fun toolsList(): Map<String, Any> = mapOf(
@@ -428,6 +431,36 @@ class McpToolHandler(
                     ),
                     "required" to listOf("symbols", "marketWeights", "views", "startDate", "endDate", "interval")
                 )
+            ),
+            mapOf(
+                "name" to "screener_run",
+                "description" to "Run a fundamental/technical stock screen over a universe of tickers",
+                "inputSchema" to mapOf(
+                    "type" to "object",
+                    "properties" to mapOf(
+                        "tickers" to mapOf("type" to "array", "items" to mapOf("type" to "string")),
+                        "startDate" to mapOf("type" to "string"),
+                        "endDate" to mapOf("type" to "string"),
+                        "interval" to mapOf("type" to "string"),
+                        "provider" to mapOf("type" to "string"),
+                        "peRatioMax" to mapOf("type" to "number"),
+                        "pbRatioMax" to mapOf("type" to "number"),
+                        "debtEquityMax" to mapOf("type" to "number"),
+                        "roeMin" to mapOf("type" to "number"),
+                        "profitMarginMin" to mapOf("type" to "number"),
+                        "dividendYieldMin" to mapOf("type" to "number"),
+                        "marketCapMin" to mapOf("type" to "number"),
+                        "rsiMax" to mapOf("type" to "number"),
+                        "rsiMin" to mapOf("type" to "number"),
+                        "priceAboveSma" to mapOf("type" to "integer"),
+                        "priceBelowSma" to mapOf("type" to "integer"),
+                        "betaMax" to mapOf("type" to "number"),
+                        "betaMin" to mapOf("type" to "number"),
+                        "sortBy" to mapOf("type" to "string"),
+                        "ascending" to mapOf("type" to "boolean")
+                    ),
+                    "required" to listOf("tickers", "startDate", "endDate", "interval")
+                )
             )
         )
     )
@@ -472,6 +505,7 @@ class McpToolHandler(
             "portfolio_optimize" -> handlePortfolioOptimize(arguments)
             "portfolio_risk_parity" -> handlePortfolioRiskParity(arguments)
             "portfolio_black_litterman" -> handlePortfolioBlackLitterman(arguments)
+            "screener_run" -> handleScreenerRun(arguments)
             else -> throw IllegalArgumentException("Unknown tool: $name")
         }
     }
@@ -870,6 +904,41 @@ class McpToolHandler(
     private fun portfolioSummary(result: com.example.starter.portfolio.domain.Portfolio): String =
         "Portfolio ${result.objective}: weights ${result.weights}, expected return ${result.expectedReturn}, " +
             "volatility ${result.volatility}, Sharpe ${result.sharpeRatio ?: "n/a"}"
+
+    private fun handleScreenerRun(arguments: Map<String, Any>): Map<String, Any> {
+        val tickers = arguments["tickers"] as? List<String>
+            ?: throw IllegalArgumentException("tickers required")
+        val criteria = ScreenCriteria(
+            peRatioMax = (arguments["peRatioMax"] as? Number)?.toDouble(),
+            pbRatioMax = (arguments["pbRatioMax"] as? Number)?.toDouble(),
+            debtEquityMax = (arguments["debtEquityMax"] as? Number)?.toDouble(),
+            roeMin = (arguments["roeMin"] as? Number)?.toDouble(),
+            profitMarginMin = (arguments["profitMarginMin"] as? Number)?.toDouble(),
+            dividendYieldMin = (arguments["dividendYieldMin"] as? Number)?.toDouble(),
+            marketCapMin = (arguments["marketCapMin"] as? Number)?.toDouble(),
+            rsiMax = (arguments["rsiMax"] as? Number)?.toDouble(),
+            rsiMin = (arguments["rsiMin"] as? Number)?.toDouble(),
+            priceAboveSma = (arguments["priceAboveSma"] as? Number)?.toInt(),
+            priceBelowSma = (arguments["priceBelowSma"] as? Number)?.toInt(),
+            betaMax = (arguments["betaMax"] as? Number)?.toDouble(),
+            betaMin = (arguments["betaMin"] as? Number)?.toDouble()
+        )
+        val result = screenStocksUseCase.screen(
+            ScreenStocksUseCase.ScreenCommand(
+                tickers = tickers,
+                criteria = criteria,
+                range = parseRange(arguments),
+                interval = parseInterval(arguments),
+                provider = arguments["provider"] as? String,
+                sortBy = arguments["sortBy"] as? String,
+                ascending = (arguments["ascending"] as? Boolean) ?: true
+            )
+        )
+        val summary = "Screen matched ${result.matches.size} of ${tickers.size} tickers" +
+            (if (result.failedTickers.isNotEmpty()) "; failed: ${result.failedTickers}" else "") +
+            ": ${result.matches.map { it.ticker }}"
+        return toolResult(summary)
+    }
 
     private fun parseRange(arguments: Map<String, Any>): DateRange {
         val start = arguments["startDate"] as? String ?: throw IllegalArgumentException("startDate required")

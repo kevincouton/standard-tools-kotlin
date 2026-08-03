@@ -9,6 +9,8 @@ import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
 import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
 import com.example.starter.portfolio.application.port.inbound.OptimizePortfolioUseCase
+import com.example.starter.screener.application.port.inbound.ScreenStocksUseCase
+import com.example.starter.screener.domain.ScreenCriteria
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
 import com.example.starter.shared.domain.BarInterval
@@ -36,7 +38,8 @@ class A2aTaskHandler(
     private val calculateMetricsUseCase: CalculateMetricsUseCase,
     private val runAnalysisUseCase: RunAnalysisUseCase,
     private val runBacktestUseCase: RunBacktestUseCase,
-    private val optimizePortfolioUseCase: OptimizePortfolioUseCase
+    private val optimizePortfolioUseCase: OptimizePortfolioUseCase,
+    private val screenStocksUseCase: ScreenStocksUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -451,6 +454,29 @@ class A2aTaskHandler(
                     )
                 )
                 portfolioSummary(result)
+            }
+            "screener-run" -> {
+                val tickers = params["tickers"] as? List<String> ?: throw IllegalArgumentException("tickers required")
+                val result = screenStocksUseCase.screen(
+                    ScreenStocksUseCase.ScreenCommand(
+                        tickers = tickers,
+                        criteria = ScreenCriteria(
+                            peRatioMax = (params["peRatioMax"] as? Number)?.toDouble(),
+                            pbRatioMax = (params["pbRatioMax"] as? Number)?.toDouble(),
+                            roeMin = (params["roeMin"] as? Number)?.toDouble(),
+                            rsiMax = (params["rsiMax"] as? Number)?.toDouble()
+                        ),
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        sortBy = params["sortBy"] as? String,
+                        ascending = (params["ascending"] as? Boolean) ?: true
+                    )
+                )
+                mapOf(
+                    "matches" to result.matches.map { mapOf("ticker" to it.ticker, "peRatio" to it.fundamentals.peRatio) },
+                    "failedTickers" to result.failedTickers
+                )
             }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
         }

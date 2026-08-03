@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.example.starter.screener.grpc;
+option java_package = "com.example.starter.screener.grpc";
+option java_multiple_files = true;
+
+service ScreenerService {
+  rpc Screen (ScreenRequest) returns (ScreenResponse);
+}
+
+message ScreenRequest {
+  repeated string tickers = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string interval = 4;
+  string provider = 5;
+  double pe_ratio_max = 6;
+  double pb_ratio_max = 7;
+  double roe_min = 8;
+  double rsi_max = 9;
+  string sort_by = 10;
+  bool ascending = 11;
+}
+
+message ScreenResponse {
+  repeated ScreenMatch matches = 1;
+  repeated string failed_tickers = 2;
+}
+
+message ScreenMatch {
+  string ticker = 1;
+  double pe_ratio = 2;
+  double pb_ratio = 3;
+  double rsi = 4;
+}
