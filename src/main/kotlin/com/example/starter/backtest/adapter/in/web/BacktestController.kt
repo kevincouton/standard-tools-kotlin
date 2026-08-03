@@ -5,10 +5,14 @@ import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import org.slf4j.LoggerFactory
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ServerWebInputException
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.time.LocalDate
@@ -18,6 +22,14 @@ import java.time.LocalDate
 class BacktestController(
     private val runBacktestUseCase: RunBacktestUseCase
 ) {
+
+    private val logger = LoggerFactory.getLogger(BacktestController::class.java)
+
+    @ExceptionHandler(ServerWebInputException::class)
+    fun handleInput(ex: ServerWebInputException): ResponseEntity<Map<String, String>> {
+        logger.warn("Input error: ${ex.reason}")
+        return ResponseEntity.badRequest().body(mapOf("error" to (ex.reason ?: "bad request")))
+    }
 
     @PostMapping("/single")
     fun single(@RequestBody request: SingleAssetBacktestRequestDto): Mono<BacktestResult> = Mono.fromCallable {
@@ -73,7 +85,7 @@ class BacktestController(
 data class SingleAssetBacktestRequestDto(
     val symbol: String,
     val strategy: String,
-    val parameters: Map<String, Any> = emptyMap(),
+    val parameters: Map<String, String> = emptyMap(),
     val startDate: LocalDate,
     val endDate: LocalDate,
     val interval: String,

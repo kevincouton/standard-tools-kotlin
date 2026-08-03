@@ -32,9 +32,9 @@ class BacktestGrpcService(
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
                 interval = BarInterval.valueOf(request.interval.uppercase()),
                 provider = request.provider.takeIf { it.isNotBlank() },
-                initialCapital = request.initialCapital,
-                commissionPct = request.commissionPct,
-                slippagePct = request.slippagePct
+                initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0,
+                commissionPct = request.commissionPct.takeIf { it > 0 } ?: 0.001,
+                slippagePct = request.slippagePct.takeIf { it > 0 } ?: 0.0005
             )
         )
         toResponse(result)
@@ -48,9 +48,9 @@ class BacktestGrpcService(
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
                 interval = BarInterval.valueOf(request.interval.uppercase()),
                 provider = request.provider.takeIf { it.isNotBlank() },
-                initialCapital = request.initialCapital,
-                commissionPct = request.commissionPct,
-                maxGrossLeverage = request.maxGrossLeverage
+                initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0,
+                commissionPct = request.commissionPct.takeIf { it > 0 } ?: 0.001,
+                maxGrossLeverage = request.maxGrossLeverage.takeIf { it > 0 } ?: 1.0
             )
         )
         toResponse(result)
@@ -61,13 +61,13 @@ class BacktestGrpcService(
             RunBacktestUseCase.PairTradeCommand(
                 symbolA = request.symbolA,
                 symbolB = request.symbolB,
-                entryZ = request.entryZ,
-                exitZ = request.exitZ,
-                zScoreWindow = request.zScoreWindow,
+                entryZ = request.entryZ.takeIf { it != 0.0 } ?: 2.0,
+                exitZ = request.exitZ.takeIf { it != 0.0 } ?: 0.5,
+                zScoreWindow = request.zScoreWindow.takeIf { it > 0 } ?: 30,
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
                 interval = BarInterval.valueOf(request.interval.uppercase()),
                 provider = request.provider.takeIf { it.isNotBlank() },
-                initialCapital = request.initialCapital
+                initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0
             )
         )
         toResponse(result)
@@ -80,9 +80,9 @@ class BacktestGrpcService(
                 ticker = Ticker(request.symbol),
                 strategy = request.strategy,
                 parameterGrid = grid,
-                trainSize = request.trainSize,
-                testSize = request.testSize,
-                metric = request.metric,
+                trainSize = request.trainSize.takeIf { it > 0 } ?: 252,
+                testSize = request.testSize.takeIf { it > 0 } ?: 63,
+                metric = request.metric.takeIf { it.isNotBlank() } ?: "sharpe_ratio",
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
                 interval = BarInterval.valueOf(request.interval.uppercase()),
                 provider = request.provider.takeIf { it.isNotBlank() }
@@ -97,9 +97,9 @@ class BacktestGrpcService(
                 ticker = Ticker(request.symbol),
                 strategy = request.strategy,
                 parameters = request.parametersMap.mapValues { it.value.toDoubleOrString() },
-                horizonDays = request.horizonDays,
-                nSimulations = request.nSimulations,
-                blockSize = request.blockSize,
+                horizonDays = request.horizonDays.takeIf { it > 0 } ?: 252,
+                nSimulations = request.nSimulations.takeIf { it > 0 } ?: 1_000,
+                blockSize = request.blockSize.takeIf { it > 0 } ?: 20,
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
                 interval = BarInterval.valueOf(request.interval.uppercase()),
                 provider = request.provider.takeIf { it.isNotBlank() }

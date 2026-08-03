@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.tablesaw.core)
     implementation(libs.caffeine)
     implementation(libs.okhttp)
+    implementation(libs.jackson.module.kotlin)
     testImplementation(libs.wiremock)
 }
 
