@@ -1,0 +1,91 @@
+package com.example.starter.portfolio.domain
+
+import org.apache.commons.math3.analysis.MultivariateFunction
+import org.apache.commons.math3.optim.InitialGuess
+import org.apache.commons.math3.optim.MaxEval
+import org.apache.commons.math3.optim.PointValuePair
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType
+import org.apache.commons.math3.optim.nonlinear.scalar.MultivariateFunctionMappingAdapter
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer
+import org.apache.commons.math3.stat.correlation.Covariance
+import kotlin.math.sqrt
+
+class MeanVarianceOptimizer {
+
+    fun optimize(
+        returns: List<List<Double>>,
+        tickers: List<String>,
+        objective: String = "max_sharpe",
+        riskFreeRate: Double = 0.02,
+        targetReturn: Double? = null,
+        targetVolatility: Double? = null,
+        allowShort: Boolean = false,
+        maxWeight: Double? = null
+    ): Portfolio {
+        require(returns.size == tickers.size && returns.isNotEmpty())
+        val aligned = align(returns)
+        val cov = Covariance(aligned).covarianceMatrix
+        val meanReturns = returns.map { it.average() }.toDoubleArray()
+        val n = tickers.size
+
+        val lower = if (allowShort) DoubleArray(n) { -1.0 } else DoubleArray(n) { 0.0 }
+        val upper = DoubleArray(n) { maxWeight ?: 1.0 }
+        val initial = DoubleArray(n) { 1.0 / n }
+
+        val objectiveFn = MultivariateFunction { weights ->
+            val w = weights.normalize()
+            val portReturn = meanReturns.zip(w).sumOf { (r, weight) -> r * weight }
+            val variance = w.foldIndexed(0.0) { i, acc, wi ->
+                acc + wi * w.foldIndexed(0.0) { j, sum, wj -> sum + wj * cov.getEntry(i, j) }
+            }
+            val volatility = sqrt(variance)
+            when (objective) {
+                "min_volatility" -> variance
+                "target_return" -> penalty(portReturn, targetReturn!!, variance)
+                "target_volatility" -> (volatility - targetVolatility!!) * (volatility - targetVolatility) - portReturn
+                else -> -(portReturn - riskFreeRate / 252) / volatility
+            }
+        }
+
+        val boundedFn = MultivariateFunctionMappingAdapter(objectiveFn, lower, upper)
+        val optimizer = SimplexOptimizer(1e-8, 1e-12)
+        val optimum: PointValuePair = optimizer.optimize(
+            ObjectiveFunction(boundedFn),
+            GoalType.MINIMIZE,
+            MaxEval(10_000),
+            InitialGuess(boundedFn.boundedToUnbounded(initial)),
+            NelderMeadSimplex(n)
+        )
+        val weights = boundedFn.unboundedToBounded(optimum.point).normalize()
+        val finalReturn = meanReturns.zip(weights).sumOf { (r, w) -> r * w }
+        val finalVol = sqrt(weights.foldIndexed(0.0) { i, acc, wi ->
+            acc + wi * weights.foldIndexed(0.0) { j, sum, wj -> sum + wj * cov.getEntry(i, j) }
+        }) * sqrt(252.0)
+        val sharpe = if (finalVol == 0.0) null else (finalReturn * 252 - riskFreeRate) / finalVol
+        return Portfolio(
+            objective = objective,
+            tickers = tickers,
+            weights = tickers.zip(weights.asIterable()).toMap(),
+            expectedReturn = finalReturn * 252,
+            volatility = finalVol,
+            sharpeRatio = sharpe
+        )
+    }
+
+    private fun penalty(portReturn: Double, target: Double, variance: Double): Double {
+        val returnError = (portReturn * 252 - target) * (portReturn * 252 - target)
+        return variance + 100.0 * returnError
+    }
+
+    private fun DoubleArray.normalize(): DoubleArray {
+        val sum = sum()
+        return if (sum == 0.0) this else map { it / sum }.toDoubleArray()
+    }
+
+    private fun align(returns: List<List<Double>>): Array<DoubleArray> {
+        val minLen = returns.minOf { it.size }
+        return Array(minLen) { row -> DoubleArray(returns.size) { col -> returns[col][returns[col].size - minLen + row] } }
+    }
+}
