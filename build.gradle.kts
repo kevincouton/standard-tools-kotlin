@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.caffeine)
     implementation(libs.okhttp)
     implementation(libs.jackson.module.kotlin)
+    implementation(libs.spring.shell.starter)
     testImplementation(libs.wiremock)
 }
 

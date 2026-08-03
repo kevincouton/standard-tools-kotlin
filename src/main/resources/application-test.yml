@@ -9,6 +9,9 @@ spring:
   grpc:
     server:
       port: 0
+  shell:
+    interactive:
+      enabled: false
 
 standard-tools:
   market-data:

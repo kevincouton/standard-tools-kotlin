@@ -1,6 +1,7 @@
 package com.example.starter.agent
 
 import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
+import com.example.starter.audit.AuditWriter
 import com.example.starter.application.port.inbound.CancelOrderUseCase
 import com.example.starter.application.port.inbound.CreateOrderUseCase
 import com.example.starter.application.port.inbound.GetOrderUseCase
@@ -33,10 +34,42 @@ class ToolDispatcher(
     private val runAnalysisUseCase: RunAnalysisUseCase,
     private val runBacktestUseCase: RunBacktestUseCase,
     private val optimizePortfolioUseCase: OptimizePortfolioUseCase,
-    private val screenStocksUseCase: ScreenStocksUseCase
+    private val screenStocksUseCase: ScreenStocksUseCase,
+    private val auditWriter: AuditWriter
 ) {
 
     fun dispatch(name: String, arguments: Map<String, Any>): Map<String, Any> {
+        val requestId = UUID.randomUUID()
+        val start = System.currentTimeMillis()
+        val result = try {
+            dispatchInternal(name, arguments)
+        } catch (ex: Throwable) {
+            val durationMs = System.currentTimeMillis() - start
+            auditWriter.write(
+                requestId = requestId,
+                toolName = name,
+                input = arguments,
+                durationMs = durationMs,
+                outputHash = "",
+                status = "error",
+                errorType = ex::class.simpleName,
+                errorMessage = ex.message
+            )
+            throw ex
+        }
+        val durationMs = System.currentTimeMillis() - start
+        auditWriter.write(
+            requestId = requestId,
+            toolName = name,
+            input = arguments,
+            durationMs = durationMs,
+            output = result,
+            status = "ok"
+        )
+        return result
+    }
+
+    private fun dispatchInternal(name: String, arguments: Map<String, Any>): Map<String, Any> {
         return when (name) {
             "run_sma_backtest" -> backtestSummary(
                 runBacktestUseCase.execute(

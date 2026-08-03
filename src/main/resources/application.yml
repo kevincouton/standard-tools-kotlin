@@ -15,6 +15,9 @@ spring:
   grpc:
     server:
       port: 9090
+  shell:
+    interactive:
+      enabled: false
 
 standard-tools:
   market-data:

@@ -1,5 +1,6 @@
 package com.example.starter.agent
 
+import com.example.starter.audit.AuditWriter
 import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
 import com.example.starter.backtest.domain.BacktestDiagnostics
 import com.example.starter.backtest.domain.BacktestResult
@@ -34,6 +35,7 @@ class AgentToolsIntegrationTest {
     private val calculateIndicatorUseCase = mockk<CalculateIndicatorUseCase>()
     private val calculateMetricsUseCase = mockk<CalculateMetricsUseCase>()
     private val runBacktestUseCase = mockk<RunBacktestUseCase>()
+    private val auditWriter = mockk<AuditWriter>(relaxed = true)
 
     private val toolRegistry = ToolRegistry()
     private val toolDispatcher = ToolDispatcher(
@@ -46,7 +48,8 @@ class AgentToolsIntegrationTest {
         runAnalysisUseCase = mockk(),
         runBacktestUseCase = runBacktestUseCase,
         optimizePortfolioUseCase = mockk(),
-        screenStocksUseCase = mockk()
+        screenStocksUseCase = mockk(),
+        auditWriter = auditWriter
     )
 
     @Test
