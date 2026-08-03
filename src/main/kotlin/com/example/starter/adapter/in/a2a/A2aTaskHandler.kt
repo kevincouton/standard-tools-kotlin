@@ -8,6 +8,7 @@ import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
 import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
 import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
+import com.example.starter.portfolio.application.port.inbound.OptimizePortfolioUseCase
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
 import com.example.starter.shared.domain.BarInterval
@@ -34,7 +35,8 @@ class A2aTaskHandler(
     private val calculateIndicatorUseCase: CalculateIndicatorUseCase,
     private val calculateMetricsUseCase: CalculateMetricsUseCase,
     private val runAnalysisUseCase: RunAnalysisUseCase,
-    private val runBacktestUseCase: RunBacktestUseCase
+    private val runBacktestUseCase: RunBacktestUseCase,
+    private val optimizePortfolioUseCase: OptimizePortfolioUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -388,6 +390,68 @@ class A2aTaskHandler(
                 )
                 backtestSummary(result)
             }
+            "portfolio-optimize" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                val objective = params["objective"] as? String ?: "max_sharpe"
+                val result = optimizePortfolioUseCase.optimize(
+                    OptimizePortfolioUseCase.OptimizeCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        objective = objective,
+                        riskFreeRate = (params["riskFreeRate"] as? Number)?.toDouble() ?: 0.02,
+                        targetReturn = (params["targetReturn"] as? Number)?.toDouble(),
+                        targetVolatility = (params["targetVolatility"] as? Number)?.toDouble(),
+                        allowShort = (params["allowShort"] as? Boolean) ?: false,
+                        maxWeight = (params["maxWeight"] as? Number)?.toDouble()
+                    )
+                )
+                portfolioSummary(result)
+            }
+            "portfolio-risk-parity" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                @Suppress("UNCHECKED_CAST")
+                val riskBudget = (params["riskBudget"] as? Map<String, Number>)?.mapValues { it.value.toDouble() }
+                val result = optimizePortfolioUseCase.riskParity(
+                    OptimizePortfolioUseCase.RiskParityCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        riskBudget = riskBudget
+                    )
+                )
+                portfolioSummary(result)
+            }
+            "portfolio-black-litterman" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                @Suppress("UNCHECKED_CAST")
+                val marketWeights = (params["marketWeights"] as? Map<String, Number>)?.mapValues { it.value.toDouble() }
+                    ?: emptyMap()
+                @Suppress("UNCHECKED_CAST")
+                val views = (params["views"] as? List<Map<String, Any>>)?.map {
+                    OptimizePortfolioUseCase.BlackLittermanViewsInput.View(
+                        asset = it["asset"] as? String,
+                        relativeAsset = it["relativeAsset"] as? String,
+                        returnView = (it["returnView"] as? Number)?.toDouble()
+                            ?: throw IllegalArgumentException("returnView required")
+                    )
+                } ?: emptyList()
+                val result = optimizePortfolioUseCase.blackLitterman(
+                    OptimizePortfolioUseCase.BlackLittermanCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        marketWeights = marketWeights,
+                        views = OptimizePortfolioUseCase.BlackLittermanViewsInput(assets = symbols, views = views),
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        riskAversion = (params["riskAversion"] as? Number)?.toDouble() ?: 2.5,
+                        tau = (params["tau"] as? Number)?.toDouble() ?: 0.05
+                    )
+                )
+                portfolioSummary(result)
+            }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
         }
 
@@ -458,6 +522,14 @@ class A2aTaskHandler(
         "equityCurvePoints" to result.equityCurve.size,
         "maxDrawdown" to (result.metrics?.maxDrawdown?.toDouble() ?: 0.0),
         "sharpeRatio" to (result.metrics?.sharpeRatio?.toDouble() ?: Double.NaN)
+    )
+
+    private fun portfolioSummary(result: com.example.starter.portfolio.domain.Portfolio): Map<String, Any> = mapOf(
+        "objective" to result.objective,
+        "weights" to result.weights,
+        "expectedReturn" to result.expectedReturn,
+        "volatility" to result.volatility,
+        "sharpeRatio" to (result.sharpeRatio ?: Double.NaN)
     )
 }
 

@@ -8,6 +8,7 @@ import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
 import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
 import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
+import com.example.starter.portfolio.application.port.inbound.OptimizePortfolioUseCase
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
 import com.example.starter.shared.domain.BarInterval
@@ -28,7 +29,8 @@ class McpToolHandler(
     private val calculateIndicatorUseCase: CalculateIndicatorUseCase,
     private val calculateMetricsUseCase: CalculateMetricsUseCase,
     private val runAnalysisUseCase: RunAnalysisUseCase,
-    private val runBacktestUseCase: RunBacktestUseCase
+    private val runBacktestUseCase: RunBacktestUseCase,
+    private val optimizePortfolioUseCase: OptimizePortfolioUseCase
 ) {
 
     fun toolsList(): Map<String, Any> = mapOf(
@@ -359,6 +361,73 @@ class McpToolHandler(
                     ),
                     "required" to listOf("symbol", "strategy", "startDate", "endDate", "interval")
                 )
+            ),
+            mapOf(
+                "name" to "portfolio_optimize",
+                "description" to "Run mean-variance portfolio optimization",
+                "inputSchema" to mapOf(
+                    "type" to "object",
+                    "properties" to mapOf(
+                        "symbols" to mapOf("type" to "array", "items" to mapOf("type" to "string")),
+                        "startDate" to mapOf("type" to "string"),
+                        "endDate" to mapOf("type" to "string"),
+                        "interval" to mapOf("type" to "string"),
+                        "provider" to mapOf("type" to "string"),
+                        "objective" to mapOf("type" to "string"),
+                        "riskFreeRate" to mapOf("type" to "number"),
+                        "targetReturn" to mapOf("type" to "number"),
+                        "targetVolatility" to mapOf("type" to "number"),
+                        "allowShort" to mapOf("type" to "boolean"),
+                        "maxWeight" to mapOf("type" to "number")
+                    ),
+                    "required" to listOf("symbols", "startDate", "endDate", "interval")
+                )
+            ),
+            mapOf(
+                "name" to "portfolio_risk_parity",
+                "description" to "Run risk parity portfolio optimization",
+                "inputSchema" to mapOf(
+                    "type" to "object",
+                    "properties" to mapOf(
+                        "symbols" to mapOf("type" to "array", "items" to mapOf("type" to "string")),
+                        "riskBudget" to mapOf("type" to "object"),
+                        "startDate" to mapOf("type" to "string"),
+                        "endDate" to mapOf("type" to "string"),
+                        "interval" to mapOf("type" to "string"),
+                        "provider" to mapOf("type" to "string")
+                    ),
+                    "required" to listOf("symbols", "startDate", "endDate", "interval")
+                )
+            ),
+            mapOf(
+                "name" to "portfolio_black_litterman",
+                "description" to "Run Black-Litterman portfolio optimization",
+                "inputSchema" to mapOf(
+                    "type" to "object",
+                    "properties" to mapOf(
+                        "symbols" to mapOf("type" to "array", "items" to mapOf("type" to "string")),
+                        "marketWeights" to mapOf("type" to "object"),
+                        "views" to mapOf(
+                            "type" to "array",
+                            "items" to mapOf(
+                                "type" to "object",
+                                "properties" to mapOf(
+                                    "asset" to mapOf("type" to "string"),
+                                    "relativeAsset" to mapOf("type" to "string"),
+                                    "returnView" to mapOf("type" to "number")
+                                ),
+                                "required" to listOf("returnView")
+                            )
+                        ),
+                        "startDate" to mapOf("type" to "string"),
+                        "endDate" to mapOf("type" to "string"),
+                        "interval" to mapOf("type" to "string"),
+                        "provider" to mapOf("type" to "string"),
+                        "riskAversion" to mapOf("type" to "number"),
+                        "tau" to mapOf("type" to "number")
+                    ),
+                    "required" to listOf("symbols", "marketWeights", "views", "startDate", "endDate", "interval")
+                )
             )
         )
     )
@@ -400,6 +469,9 @@ class McpToolHandler(
             "backtest_pair" -> handleBacktestPair(arguments)
             "backtest_walk_forward" -> handleBacktestWalkForward(arguments)
             "backtest_monte_carlo" -> handleBacktestMonteCarlo(arguments)
+            "portfolio_optimize" -> handlePortfolioOptimize(arguments)
+            "portfolio_risk_parity" -> handlePortfolioRiskParity(arguments)
+            "portfolio_black_litterman" -> handlePortfolioBlackLitterman(arguments)
             else -> throw IllegalArgumentException("Unknown tool: $name")
         }
     }
@@ -729,6 +801,75 @@ class McpToolHandler(
         "Backtest ${result.strategyName}: final equity ${result.finalEquity}, total return ${result.totalReturn}, " +
             "trades ${result.trades.size}, max drawdown ${result.metrics?.maxDrawdown ?: "n/a"}, " +
             "Sharpe ${result.metrics?.sharpeRatio ?: "n/a"}"
+
+    private fun handlePortfolioOptimize(arguments: Map<String, Any>): Map<String, Any> {
+        val symbols = arguments["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+        val objective = arguments["objective"] as? String ?: "max_sharpe"
+        val result = optimizePortfolioUseCase.optimize(
+            OptimizePortfolioUseCase.OptimizeCommand(
+                tickers = symbols.map { Ticker(it) },
+                range = parseRange(arguments),
+                interval = parseInterval(arguments),
+                provider = arguments["provider"] as? String,
+                objective = objective,
+                riskFreeRate = (arguments["riskFreeRate"] as? Number)?.toDouble() ?: 0.02,
+                targetReturn = (arguments["targetReturn"] as? Number)?.toDouble(),
+                targetVolatility = (arguments["targetVolatility"] as? Number)?.toDouble(),
+                allowShort = (arguments["allowShort"] as? Boolean) ?: false,
+                maxWeight = (arguments["maxWeight"] as? Number)?.toDouble()
+            )
+        )
+        return toolResult(portfolioSummary(result))
+    }
+
+    private fun handlePortfolioRiskParity(arguments: Map<String, Any>): Map<String, Any> {
+        val symbols = arguments["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+        @Suppress("UNCHECKED_CAST")
+        val riskBudget = (arguments["riskBudget"] as? Map<String, Number>)?.mapValues { it.value.toDouble() }
+        val result = optimizePortfolioUseCase.riskParity(
+            OptimizePortfolioUseCase.RiskParityCommand(
+                tickers = symbols.map { Ticker(it) },
+                range = parseRange(arguments),
+                interval = parseInterval(arguments),
+                provider = arguments["provider"] as? String,
+                riskBudget = riskBudget
+            )
+        )
+        return toolResult(portfolioSummary(result))
+    }
+
+    private fun handlePortfolioBlackLitterman(arguments: Map<String, Any>): Map<String, Any> {
+        val symbols = arguments["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+        @Suppress("UNCHECKED_CAST")
+        val marketWeights = (arguments["marketWeights"] as? Map<String, Number>)?.mapValues { it.value.toDouble() }
+            ?: emptyMap()
+        @Suppress("UNCHECKED_CAST")
+        val views = (arguments["views"] as? List<Map<String, Any>>)?.map {
+            OptimizePortfolioUseCase.BlackLittermanViewsInput.View(
+                asset = it["asset"] as? String,
+                relativeAsset = it["relativeAsset"] as? String,
+                returnView = (it["returnView"] as? Number)?.toDouble()
+                    ?: throw IllegalArgumentException("returnView required")
+            )
+        } ?: emptyList()
+        val result = optimizePortfolioUseCase.blackLitterman(
+            OptimizePortfolioUseCase.BlackLittermanCommand(
+                tickers = symbols.map { Ticker(it) },
+                marketWeights = marketWeights,
+                views = OptimizePortfolioUseCase.BlackLittermanViewsInput(assets = symbols, views = views),
+                range = parseRange(arguments),
+                interval = parseInterval(arguments),
+                provider = arguments["provider"] as? String,
+                riskAversion = (arguments["riskAversion"] as? Number)?.toDouble() ?: 2.5,
+                tau = (arguments["tau"] as? Number)?.toDouble() ?: 0.05
+            )
+        )
+        return toolResult(portfolioSummary(result))
+    }
+
+    private fun portfolioSummary(result: com.example.starter.portfolio.domain.Portfolio): String =
+        "Portfolio ${result.objective}: weights ${result.weights}, expected return ${result.expectedReturn}, " +
+            "volatility ${result.volatility}, Sharpe ${result.sharpeRatio ?: "n/a"}"
 
     private fun parseRange(arguments: Map<String, Any>): DateRange {
         val start = arguments["startDate"] as? String ?: throw IllegalArgumentException("startDate required")

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package com.example.starter.portfolio.grpc;
+option java_package = "com.example.starter.portfolio.grpc";
+option java_multiple_files = true;
+
+service PortfolioService {
+  rpc Optimize (OptimizeRequest) returns (PortfolioResponse);
+  rpc RiskParity (RiskParityRequest) returns (PortfolioResponse);
+  rpc BlackLitterman (BlackLittermanRequest) returns (PortfolioResponse);
+}
+
+message OptimizeRequest {
+  repeated string symbols = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string interval = 4;
+  string provider = 5;
+  string objective = 6;
+  double risk_free_rate = 7;
+  double target_return = 8;
+  double target_volatility = 9;
+  bool allow_short = 10;
+  double max_weight = 11;
+}
+
+message RiskParityRequest {
+  repeated string symbols = 1;
+  map<string, double> risk_budget = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+}
+
+message BlackLittermanRequest {
+  repeated string symbols = 1;
+  map<string, double> market_weights = 2;
+  repeated BLView views = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string interval = 6;
+  string provider = 7;
+  double risk_aversion = 8;
+  double tau = 9;
+}
+
+message BLView {
+  string asset = 1;
+  string relative_asset = 2;
+  double return_view = 3;
+}
+
+message PortfolioResponse {
+  string objective = 1;
+  map<string, double> weights = 2;
+  double expected_return = 3;
+  double volatility = 4;
+  double sharpe_ratio = 5;
+}
