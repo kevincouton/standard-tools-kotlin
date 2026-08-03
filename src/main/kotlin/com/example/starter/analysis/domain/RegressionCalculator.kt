@@ -2,7 +2,9 @@ package com.example.starter.analysis.domain
 
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.regression.SimpleRegression
+import org.springframework.stereotype.Component
 
+@Component
 class RegressionCalculator {
 
     fun calculate(asset: PriceSeries, benchmark: PriceSeries, riskFreeRate: Double = 0.02): RegressionResult {

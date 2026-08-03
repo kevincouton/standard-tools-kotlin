@@ -2,7 +2,9 @@ package com.example.starter.analysis.domain
 
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
+import org.springframework.stereotype.Component
 
+@Component
 class MultiFactorCalculator {
 
     fun calculate(asset: PriceSeries, factors: Map<String, PriceSeries>): MultiFactorResult {

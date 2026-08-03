@@ -4,6 +4,7 @@ import com.example.starter.application.port.inbound.CancelOrderUseCase
 import com.example.starter.application.port.inbound.CreateOrderUseCase
 import com.example.starter.application.port.inbound.GetOrderUseCase
 import com.example.starter.domain.OrderItem
+import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
@@ -29,7 +30,8 @@ class A2aTaskHandler(
     private val cancelOrderUseCase: CancelOrderUseCase,
     private val fetchMarketDataUseCase: FetchMarketDataUseCase,
     private val calculateIndicatorUseCase: CalculateIndicatorUseCase,
-    private val calculateMetricsUseCase: CalculateMetricsUseCase
+    private val calculateMetricsUseCase: CalculateMetricsUseCase,
+    private val runAnalysisUseCase: RunAnalysisUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -185,6 +187,108 @@ class A2aTaskHandler(
                     "annualizedVolatility" to result.annualizedVolatility.toPlainString()
                 )
             }
+            "analysis-regression" -> {
+                val asset = params["asset"] as? String ?: throw IllegalArgumentException("asset required")
+                val benchmark = params["benchmark"] as? String ?: throw IllegalArgumentException("benchmark required")
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.RegressionCommand(
+                        asset = Ticker(asset),
+                        benchmark = Ticker(benchmark),
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String
+                    )
+                )
+            }
+            "analysis-cointegration" -> {
+                val assetA = params["assetA"] as? String ?: throw IllegalArgumentException("assetA required")
+                val assetB = params["assetB"] as? String ?: throw IllegalArgumentException("assetB required")
+                val zScoreWindow = (params["zScoreWindow"] as? Number)?.toInt() ?: 30
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.CointegrationCommand(
+                        assetA = Ticker(assetA),
+                        assetB = Ticker(assetB),
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        zScoreWindow = zScoreWindow
+                    )
+                )
+            }
+            "analysis-hurst" -> {
+                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val method = params["method"] as? String ?: "dfa"
+                val rollingWindow = (params["rollingWindow"] as? Number)?.toInt()
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.HurstCommand(
+                        ticker = Ticker(symbol),
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        method = method,
+                        rollingWindow = rollingWindow
+                    )
+                )
+            }
+            "analysis-pca" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                val nComponents = (params["nComponents"] as? Number)?.toInt()
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.PcaCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        nComponents = nComponents
+                    )
+                )
+            }
+            "analysis-correlation" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.CorrelationCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String
+                    )
+                )
+            }
+            "analysis-multi-factor" -> {
+                val asset = params["asset"] as? String ?: throw IllegalArgumentException("asset required")
+                val factors = params["factors"] as? Map<String, String> ?: throw IllegalArgumentException("factors required")
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.MultiFactorCommand(
+                        asset = Ticker(asset),
+                        factors = factors.mapValues { Ticker(it.value) },
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String
+                    )
+                )
+            }
+            "analysis-option" -> {
+                val spot = (params["spot"] as? Number)?.toDouble() ?: throw IllegalArgumentException("spot required")
+                val strike = (params["strike"] as? Number)?.toDouble() ?: throw IllegalArgumentException("strike required")
+                val timeToExpiry = (params["timeToExpiry"] as? Number)?.toDouble() ?: throw IllegalArgumentException("timeToExpiry required")
+                val riskFreeRate = (params["riskFreeRate"] as? Number)?.toDouble() ?: 0.05
+                val volatility = (params["volatility"] as? Number)?.toDouble() ?: throw IllegalArgumentException("volatility required")
+                val optionType = params["optionType"] as? String ?: "call"
+                val dividendYield = (params["dividendYield"] as? Number)?.toDouble() ?: 0.0
+                val marketPrice = (params["marketPrice"] as? Number)?.toDouble()
+                runAnalysisUseCase.execute(
+                    RunAnalysisUseCase.OptionPricingCommand(
+                        spot = spot,
+                        strike = strike,
+                        timeToExpiry = timeToExpiry,
+                        riskFreeRate = riskFreeRate,
+                        volatility = volatility,
+                        optionType = optionType,
+                        dividendYield = dividendYield,
+                        marketPrice = marketPrice
+                    )
+                )
+            }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
         }
 
@@ -221,6 +325,17 @@ class A2aTaskHandler(
             ?: throw InvalidCommandException(
                 "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
             )
+    }
+
+    private fun parseRange(params: Map<String, Any>): DateRange {
+        val start = params["startDate"] as? String ?: throw IllegalArgumentException("startDate required")
+        val end = params["endDate"] as? String ?: throw IllegalArgumentException("endDate required")
+        return DateRange(LocalDate.parse(start), LocalDate.parse(end))
+    }
+
+    private fun parseInterval(params: Map<String, Any>): BarInterval {
+        val interval = params["interval"] as? String ?: "DAILY"
+        return parseInterval(interval)
     }
 
     @Suppress("UNCHECKED_CAST")

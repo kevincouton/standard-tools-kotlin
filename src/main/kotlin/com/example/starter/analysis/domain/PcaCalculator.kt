@@ -4,8 +4,10 @@ import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.linear.Array2DRowRealMatrix
 import org.apache.commons.math3.linear.EigenDecomposition
 import org.apache.commons.math3.stat.correlation.Covariance
+import org.springframework.stereotype.Component
 import kotlin.math.sqrt
 
+@Component
 class PcaCalculator {
 
     fun calculate(tickers: List<String>, series: List<PriceSeries>, nComponents: Int? = null, standardize: Boolean = true): PcaResult {

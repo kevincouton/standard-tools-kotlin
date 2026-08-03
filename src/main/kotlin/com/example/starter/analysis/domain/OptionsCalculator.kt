@@ -1,12 +1,14 @@
 package com.example.starter.analysis.domain
 
 import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
+import org.springframework.stereotype.Component
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+@Component
 class OptionsCalculator {
 
     private fun d1(spot: Double, strike: Double, time: Double, rate: Double, vol: Double, div: Double): Double {

@@ -2,9 +2,11 @@ package com.example.starter.analysis.domain
 
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.regression.SimpleRegression
+import org.springframework.stereotype.Component
 import kotlin.math.ln
 import kotlin.math.sqrt
 
+@Component
 class CointegrationCalculator {
 
     fun calculate(a: PriceSeries, b: PriceSeries, zScoreWindow: Int = 30): CointegrationResult {

@@ -2,7 +2,9 @@ package com.example.starter.analysis.domain
 
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation
+import org.springframework.stereotype.Component
 
+@Component
 class CorrelationCalculator {
 
     fun calculate(tickers: List<String>, series: List<PriceSeries>, weights: Map<String, Double>? = null): CorrelationResult {
