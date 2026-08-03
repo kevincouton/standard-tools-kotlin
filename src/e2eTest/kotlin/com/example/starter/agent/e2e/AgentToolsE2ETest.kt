@@ -1,6 +1,7 @@
 package com.example.starter.agent.e2e
 
 import com.example.starter.testsupport.PostgresTestContainer
+import com.example.starter.testsupport.ScenarioLogger
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -45,6 +46,8 @@ class AgentToolsE2ETest {
 
     @Test
     fun `GET agent tools returns OpenAI function list`() {
+        val logger = ScenarioLogger("Agent tools discovery")
+
         val result = webTestClient.get().uri("/api/v1/agent/tools")
             .exchange()
             .expectStatus().isOk
@@ -63,10 +66,15 @@ class AgentToolsE2ETest {
         expectThat(function["name"]).isNotNull()
         expectThat(function["description"]).isNotNull()
         expectThat(function["parameters"]).isNotNull()
+
+        logger.step("REST", "GET /api/v1/agent/tools", "${tools.size} tools")
+        logger.print()
     }
 
     @Test
     fun `POST agent dispatch runs option pricing tool`() {
+        val logger = ScenarioLogger("Agent tool dispatch")
+
         val result = webTestClient.post().uri("/api/v1/agent/dispatch")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
@@ -89,12 +97,14 @@ class AgentToolsE2ETest {
 
         @Suppress("UNCHECKED_CAST")
         val body = result.responseBody ?: emptyMap<String, Any>()
-        println("Dispatch response body: $body")
         expectThat(body["tool"]).isEqualTo("get_option_pricing")
         @Suppress("UNCHECKED_CAST")
         val toolResult = body["result"] as? Map<String, Any>
         expectThat(toolResult).isNotNull()
         expectThat(toolResult?.get("operation")).isEqualTo("option-pricing")
         expectThat(toolResult?.get("price")).isNotNull()
+
+        logger.step("REST", "POST /api/v1/agent/dispatch", "option-pricing price=${toolResult?.get("price")}")
+        logger.print()
     }
 }

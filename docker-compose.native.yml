@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:18
+    container_name: starter-postgres-native
+    environment:
+      POSTGRES_DB: starter
+      POSTGRES_USER: starter
+      POSTGRES_PASSWORD: starter
+    ports:
+      - "5432:5432"
+    volumes:
+      - starter-postgres-native-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starter -d starter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.native
+    container_name: starter-app-native
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: starter
+      DB_USER: starter
+      DB_PASS: starter
+      STANDARD_TOOLS_AUDIT_ENABLED: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  starter-postgres-native-data:

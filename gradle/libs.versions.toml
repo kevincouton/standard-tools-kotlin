@@ -6,6 +6,7 @@ dependencyManagement = "1.1.7"
 allurePlugin = "2.12.0"
 protobufPlugin = "0.9.5"
 versionsPlugin = "0.52.0"
+graalvmNativePlugin = "0.10.6"
 testcontainers = "1.20.5"
 mockk = "1.13.17"
 strikt = "0.35.1"
@@ -28,6 +29,7 @@ dependency-management = { id = "io.spring.dependency-management", version.ref = 
 allure = { id = "io.qameta.allure", version.ref = "allurePlugin" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
 versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
+graalvm-native = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNativePlugin" }
 
 [libraries]
 spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux" }

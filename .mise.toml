@@ -4,10 +4,20 @@ gradle = "9.1.0"
 act = "0.2.75"
 podman = "latest"
 
+[env]
+STANDARD_TOOLS_AUDIT_ENABLED = "true"
+
 [tasks]
+build = "./gradlew bootJar"
+build-native = "./gradlew nativeCompile"
+run = "./gradlew bootRun"
 test = "./gradlew test"
 test-integration = "./gradlew integrationTest"
 test-e2e = "./gradlew e2eTest"
 test-all = "./gradlew test integrationTest e2eTest"
-test-report = "./gradlew allureServe"
+test-visual = "./gradlew e2eTest --info | ./scripts/visual-test-report.sh"
+lint = "./gradlew ktlintCheck"
 dependency-updates = "./gradlew dependencyUpdates"
+act-ci = "./scripts/run-act-local.sh -j build"
+compose-up = "podman-compose up -d --build"
+compose-down = "podman-compose down"

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM eclipse-temurin:25-jdk AS builder
+FROM ghcr.io/graalvm/native-image-community:25 AS builder
 WORKDIR /app
 
 # Cache Gradle wrapper and dependency resolution layers
@@ -10,20 +10,15 @@ COPY gradle/libs.versions.toml ./gradle/
 RUN --mount=type=cache,target=/root/.gradle \
     ./gradlew dependencies --no-daemon
 
-# Build the application
+# Build the native executable
 COPY . .
 RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew bootJar --no-daemon
+    ./gradlew nativeCompile --no-daemon
 
-FROM eclipse-temurin:25-jre
+FROM gcr.io/distroless/cc-debian12:latest
 WORKDIR /app
 
-# Create a non-root user for running the application
-RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
-
-COPY --from=builder /app/build/libs/*.jar app.jar
-RUN chown -R appuser:appgroup /app
-USER appuser
+COPY --from=builder /app/build/native/nativeCompile/kotlin-grpc-rest-starter /app/application
 
 EXPOSE 8080 9090
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/app/application"]

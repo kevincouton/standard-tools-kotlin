@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.protobuf)
     alias(libs.plugins.allure)
     alias(libs.plugins.versions)
+    alias(libs.plugins.graalvm.native)
 }
 
 group = "com.example.starter"
@@ -74,6 +75,10 @@ sourceSets {
         compileClasspath += sourceSets["main"].output + sourceSets["test"].output
         runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
     }
+    create("nativeTest") {
+        compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+        runtimeClasspath += sourceSets["main"].output + sourceSets["test"].output
+    }
 }
 
 kotlin {
@@ -84,6 +89,9 @@ kotlin {
         named("e2eTest") {
             kotlin.srcDir("src/e2eTest/kotlin")
         }
+        named("nativeTest") {
+            kotlin.srcDir("src/nativeTest/kotlin")
+        }
     }
 }
 
@@ -92,6 +100,8 @@ configurations {
     named("integrationTestRuntimeOnly") { extendsFrom(configurations["testRuntimeOnly"]) }
     named("e2eTestImplementation") { extendsFrom(configurations["testImplementation"]) }
     named("e2eTestRuntimeOnly") { extendsFrom(configurations["testRuntimeOnly"]) }
+    named("nativeTestImplementation") { extendsFrom(configurations["testImplementation"]) }
+    named("nativeTestRuntimeOnly") { extendsFrom(configurations["testRuntimeOnly"]) }
 }
 
 protobuf {
@@ -112,6 +122,19 @@ protobuf {
                 named("grpc") { }
                 id("grpckt") { }
             }
+        }
+    }
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("kotlin-grpc-rest-starter")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+        }
+        named("test") {
+            imageName.set("kotlin-grpc-rest-starter-test")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
         }
     }
 }
