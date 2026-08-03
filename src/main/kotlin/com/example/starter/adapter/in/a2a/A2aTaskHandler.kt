@@ -5,6 +5,8 @@ import com.example.starter.application.port.inbound.CreateOrderUseCase
 import com.example.starter.application.port.inbound.GetOrderUseCase
 import com.example.starter.domain.OrderItem
 import com.example.starter.analysis.application.port.inbound.RunAnalysisUseCase
+import com.example.starter.backtest.application.port.inbound.RunBacktestUseCase
+import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.indicators.application.port.inbound.CalculateIndicatorUseCase
 import com.example.starter.marketdata.application.port.inbound.FetchMarketDataUseCase
 import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseCase
@@ -31,7 +33,8 @@ class A2aTaskHandler(
     private val fetchMarketDataUseCase: FetchMarketDataUseCase,
     private val calculateIndicatorUseCase: CalculateIndicatorUseCase,
     private val calculateMetricsUseCase: CalculateMetricsUseCase,
-    private val runAnalysisUseCase: RunAnalysisUseCase
+    private val runAnalysisUseCase: RunAnalysisUseCase,
+    private val runBacktestUseCase: RunBacktestUseCase
 ) {
 
     @PostMapping("/tasks", consumes = ["application/json"], produces = ["application/json"])
@@ -289,6 +292,102 @@ class A2aTaskHandler(
                     )
                 )
             }
+            "backtest-single" -> {
+                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val strategy = params["strategy"] as? String ?: throw IllegalArgumentException("strategy required")
+                val parameters = (params["parameters"] as? Map<String, Any>) ?: emptyMap()
+                val result = runBacktestUseCase.execute(
+                    RunBacktestUseCase.SingleAssetCommand(
+                        ticker = Ticker(symbol),
+                        strategy = strategy,
+                        parameters = parameters,
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        initialCapital = (params["initialCapital"] as? Number)?.toDouble() ?: 10_000.0,
+                        commissionPct = (params["commissionPct"] as? Number)?.toDouble() ?: 0.001,
+                        slippagePct = (params["slippagePct"] as? Number)?.toDouble() ?: 0.0005
+                    )
+                )
+                backtestSummary(result)
+            }
+            "backtest-portfolio" -> {
+                val symbols = params["symbols"] as? List<String> ?: throw IllegalArgumentException("symbols required")
+                @Suppress("UNCHECKED_CAST")
+                val weights = (params["weights"] as? Map<String, Number>)?.mapValues { it.value.toDouble() } ?: emptyMap()
+                val result = runBacktestUseCase.execute(
+                    RunBacktestUseCase.PortfolioSimulationCommand(
+                        tickers = symbols.map { Ticker(it) },
+                        weights = weights,
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        initialCapital = (params["initialCapital"] as? Number)?.toDouble() ?: 10_000.0,
+                        commissionPct = (params["commissionPct"] as? Number)?.toDouble() ?: 0.001,
+                        maxGrossLeverage = (params["maxGrossLeverage"] as? Number)?.toDouble() ?: 1.0
+                    )
+                )
+                backtestSummary(result)
+            }
+            "backtest-pair" -> {
+                val symbolA = params["symbolA"] as? String ?: throw IllegalArgumentException("symbolA required")
+                val symbolB = params["symbolB"] as? String ?: throw IllegalArgumentException("symbolB required")
+                val result = runBacktestUseCase.execute(
+                    RunBacktestUseCase.PairTradeCommand(
+                        symbolA = symbolA,
+                        symbolB = symbolB,
+                        entryZ = (params["entryZ"] as? Number)?.toDouble() ?: 2.0,
+                        exitZ = (params["exitZ"] as? Number)?.toDouble() ?: 0.5,
+                        zScoreWindow = (params["zScoreWindow"] as? Number)?.toInt() ?: 30,
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        initialCapital = (params["initialCapital"] as? Number)?.toDouble() ?: 10_000.0
+                    )
+                )
+                backtestSummary(result)
+            }
+            "backtest-walk-forward" -> {
+                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val strategy = params["strategy"] as? String ?: throw IllegalArgumentException("strategy required")
+                @Suppress("UNCHECKED_CAST")
+                val parameterGrid = (params["parameterGrid"] as? Map<String, List<Any>>) ?: emptyMap()
+                val result = runBacktestUseCase.execute(
+                    RunBacktestUseCase.WalkForwardCommand(
+                        ticker = Ticker(symbol),
+                        strategy = strategy,
+                        parameterGrid = parameterGrid,
+                        trainSize = (params["trainSize"] as? Number)?.toInt() ?: 252,
+                        testSize = (params["testSize"] as? Number)?.toInt() ?: 63,
+                        metric = params["metric"] as? String ?: "sharpe_ratio",
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        initialCapital = (params["initialCapital"] as? Number)?.toDouble() ?: 10_000.0
+                    )
+                )
+                backtestSummary(result)
+            }
+            "backtest-monte-carlo" -> {
+                val symbol = params["symbol"] as? String ?: throw IllegalArgumentException("symbol required")
+                val strategy = params["strategy"] as? String ?: throw IllegalArgumentException("strategy required")
+                val parameters = (params["parameters"] as? Map<String, Any>) ?: emptyMap()
+                val result = runBacktestUseCase.execute(
+                    RunBacktestUseCase.MonteCarloCommand(
+                        ticker = Ticker(symbol),
+                        strategy = strategy,
+                        parameters = parameters,
+                        horizonDays = (params["horizonDays"] as? Number)?.toInt() ?: 252,
+                        nSimulations = (params["nSimulations"] as? Number)?.toInt() ?: 1_000,
+                        blockSize = (params["blockSize"] as? Number)?.toInt() ?: 20,
+                        range = parseRange(params),
+                        interval = parseInterval(params),
+                        provider = params["provider"] as? String,
+                        initialCapital = (params["initialCapital"] as? Number)?.toDouble() ?: 10_000.0
+                    )
+                )
+                backtestSummary(result)
+            }
             else -> return JsonRpcResponse.error(request.id, -32602, "Unknown skill: $skillId")
         }
 
@@ -349,6 +448,17 @@ class A2aTaskHandler(
             )
         }
     }
+
+    private fun backtestSummary(result: BacktestResult): Map<String, Any> = mapOf(
+        "strategyName" to result.strategyName,
+        "initialCapital" to result.initialCapital,
+        "finalEquity" to result.finalEquity,
+        "totalReturn" to result.totalReturn,
+        "trades" to result.trades.size,
+        "equityCurvePoints" to result.equityCurve.size,
+        "maxDrawdown" to (result.metrics?.maxDrawdown?.toDouble() ?: 0.0),
+        "sharpeRatio" to (result.metrics?.sharpeRatio?.toDouble() ?: Double.NaN)
+    )
 }
 
 data class JsonRpcRequest(
