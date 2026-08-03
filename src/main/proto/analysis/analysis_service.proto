@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package com.example.starter.analysis.grpc;
+option java_package = "com.example.starter.analysis.grpc";
+option java_multiple_files = true;
+
+service AnalysisService {
+  rpc RunRegression (RegressionRequest) returns (RegressionResponse);
+  rpc RunCointegration (CointegrationRequest) returns (CointegrationResponse);
+  rpc RunHurst (HurstRequest) returns (HurstResponse);
+  rpc RunPca (PcaRequest) returns (PcaResponse);
+  rpc RunCorrelation (CorrelationRequest) returns (CorrelationResponse);
+  rpc RunMultiFactor (MultiFactorRequest) returns (MultiFactorResponse);
+  rpc PriceOption (OptionPricingRequest) returns (OptionPricingResponse);
+}
+
+message RegressionRequest {
+  string asset_symbol = 1;
+  string benchmark_symbol = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+}
+
+message RegressionResponse {
+  double alpha = 1;
+  double beta = 2;
+  double r_squared = 3;
+  double annualized_alpha = 4;
+}
+
+message CointegrationRequest {
+  string symbol_a = 1;
+  string symbol_b = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+  int32 z_score_window = 7;
+}
+
+message CointegrationResponse {
+  double hedge_ratio = 1;
+  double adf_statistic = 2;
+  double p_value_approx = 3;
+  double half_life = 4;
+  double current_z_score = 5;
+}
+
+message HurstRequest {
+  string symbol = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string interval = 4;
+  string provider = 5;
+  string method = 6;
+  int32 rolling_window = 7;
+}
+
+message HurstResponse {
+  double exponent = 1;
+  string regime = 2;
+}
+
+message PcaRequest {
+  repeated string symbols = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string interval = 4;
+  string provider = 5;
+  int32 n_components = 6;
+}
+
+message PcaResponse {
+  repeated double explained_variance_ratio = 1;
+  map<string, DoubleList> loadings = 2;
+}
+
+message DoubleList {
+  repeated double values = 1;
+}
+
+message CorrelationRequest {
+  repeated string symbols = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string interval = 4;
+  string provider = 5;
+}
+
+message CorrelationResponse {
+  map<string, DoubleMap> matrix = 1;
+  double average = 2;
+  double min = 3;
+  double max = 4;
+  double diversification_ratio = 5;
+}
+
+message DoubleMap {
+  map<string, double> values = 1;
+}
+
+message MultiFactorRequest {
+  string asset_symbol = 1;
+  map<string, string> factor_symbols = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+}
+
+message MultiFactorResponse {
+  double alpha = 1;
+  map<string, double> loadings = 2;
+  map<string, double> t_statistics = 3;
+  map<string, double> p_values = 4;
+  double r_squared = 5;
+  double adj_r_squared = 6;
+}
+
+message OptionPricingRequest {
+  double spot = 1;
+  double strike = 2;
+  double time_to_expiry = 3;
+  double risk_free_rate = 4;
+  double volatility = 5;
+  string option_type = 6;
+  double dividend_yield = 7;
+  double market_price = 8;
+}
+
+message OptionPricingResponse {
+  double price = 1;
+  double delta = 2;
+  double gamma = 3;
+  double vega = 4;
+  double theta = 5;
+  double rho = 6;
+  double implied_volatility = 7;
+}
