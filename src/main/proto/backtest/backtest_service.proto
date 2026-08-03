@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package com.example.starter.backtest.grpc;
+option java_package = "com.example.starter.backtest.grpc";
+option java_multiple_files = true;
+
+service BacktestService {
+  rpc RunSingleAsset (SingleAssetBacktestRequest) returns (BacktestResponse);
+  rpc RunPortfolioSimulation (PortfolioSimulationRequest) returns (BacktestResponse);
+  rpc RunPairTrade (PairTradeRequest) returns (BacktestResponse);
+  rpc RunWalkForward (WalkForwardRequest) returns (BacktestResponse);
+  rpc RunMonteCarlo (MonteCarloRequest) returns (BacktestResponse);
+}
+
+message SingleAssetBacktestRequest {
+  string symbol = 1;
+  string strategy = 2;
+  map<string, string> parameters = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string interval = 6;
+  string provider = 7;
+  double initial_capital = 8;
+  double commission_pct = 9;
+  double slippage_pct = 10;
+}
+
+message PortfolioSimulationRequest {
+  repeated string symbols = 1;
+  map<string, double> weights = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string interval = 5;
+  string provider = 6;
+  double initial_capital = 7;
+  double commission_pct = 8;
+  double max_gross_leverage = 9;
+}
+
+message PairTradeRequest {
+  string symbol_a = 1;
+  string symbol_b = 2;
+  double entry_z = 3;
+  double exit_z = 4;
+  int32 z_score_window = 5;
+  string start_date = 6;
+  string end_date = 7;
+  string interval = 8;
+  string provider = 9;
+  double initial_capital = 10;
+}
+
+message WalkForwardRequest {
+  string symbol = 1;
+  string strategy = 2;
+  map<string, StringList> parameter_grid = 3;
+  int32 train_size = 4;
+  int32 test_size = 5;
+  string metric = 6;
+  string start_date = 7;
+  string end_date = 8;
+  string interval = 9;
+  string provider = 10;
+}
+
+message StringList {
+  repeated string values = 1;
+}
+
+message MonteCarloRequest {
+  string symbol = 1;
+  string strategy = 2;
+  map<string, string> parameters = 3;
+  int32 horizon_days = 4;
+  int32 n_simulations = 5;
+  int32 block_size = 6;
+  string start_date = 7;
+  string end_date = 8;
+  string interval = 9;
+  string provider = 10;
+}
+
+message BacktestResponse {
+  string strategy_name = 1;
+  double initial_capital = 2;
+  double final_equity = 3;
+  double total_return = 4;
+  repeated Trade trades = 5;
+  repeated EquityCurvePoint equity_curve = 6;
+  map<string, double> metrics = 7;
+  map<string, string> metadata = 8;
+}
+
+message Trade {
+  string entry_date = 1;
+  string exit_date = 2;
+  string direction = 3;
+  double entry_price = 4;
+  double exit_price = 5;
+  double size = 6;
+  double pnl = 7;
+}
+
+message EquityCurvePoint {
+  string date = 1;
+  double equity = 2;
+  double drawdown = 3;
+}
