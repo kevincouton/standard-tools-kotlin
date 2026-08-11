@@ -14,7 +14,9 @@ class RiskReturnCalculator {
 
     fun returnMetrics(series: PriceSeries, riskFreeRate: Double = 0.02): ReturnMetrics {
         val returns = simpleReturns(series)
-        val cumulative = (1 + returns.sum()).let { BigDecimal(it).setScale(4, RoundingMode.HALF_UP) }
+        val cumulative = returns
+            .fold(1.0) { acc, r -> acc * (1 + r) }
+            .let { BigDecimal(it - 1).setScale(4, RoundingMode.HALF_UP) }
         val stats = DescriptiveStatistics(returns.toDoubleArray())
         val annVol = stats.standardDeviation * sqrt(252.0)
         val meanReturn = returns.average() * 252

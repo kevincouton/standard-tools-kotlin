@@ -10,6 +10,7 @@ import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer
 import org.apache.commons.math3.stat.correlation.Covariance
+import com.example.starter.shared.domain.InvalidCommandException
 import kotlin.math.sqrt
 
 class MeanVarianceOptimizer {
@@ -34,6 +35,13 @@ class MeanVarianceOptimizer {
         val upper = DoubleArray(n) { maxWeight ?: 1.0 }
         val initial = DoubleArray(n) { 1.0 / n }
 
+        requireCommand(objective != "target_return" || targetReturn != null) {
+            "target_return objective requires targetReturn"
+        }
+        requireCommand(objective != "target_volatility" || targetVolatility != null) {
+            "target_volatility objective requires targetVolatility"
+        }
+
         val objectiveFn = MultivariateFunction { weights ->
             val w = weights.normalize()
             val portReturn = meanReturns.zip(w).sumOf { (r, weight) -> r * weight }
@@ -43,8 +51,8 @@ class MeanVarianceOptimizer {
             val volatility = sqrt(variance)
             when (objective) {
                 "min_volatility" -> variance
-                "target_return" -> penalty(portReturn, targetReturn!!, variance)
-                "target_volatility" -> (volatility - targetVolatility!!) * (volatility - targetVolatility) - portReturn
+                "target_return" -> penalty(portReturn, targetReturn, variance)
+                "target_volatility" -> (volatility - targetVolatility) * (volatility - targetVolatility) - portReturn
                 else -> -(portReturn - riskFreeRate / 252) / volatility
             }
         }
@@ -87,5 +95,9 @@ class MeanVarianceOptimizer {
     private fun align(returns: List<List<Double>>): Array<DoubleArray> {
         val minLen = returns.minOf { it.size }
         return Array(minLen) { row -> DoubleArray(returns.size) { col -> returns[col][returns[col].size - minLen + row] } }
+    }
+
+    private inline fun requireCommand(value: Boolean, lazyMessage: () -> String) {
+        if (!value) throw InvalidCommandException(lazyMessage())
     }
 }
