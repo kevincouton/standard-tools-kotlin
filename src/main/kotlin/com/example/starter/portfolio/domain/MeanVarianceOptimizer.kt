@@ -35,11 +35,11 @@ class MeanVarianceOptimizer {
         val upper = DoubleArray(n) { maxWeight ?: 1.0 }
         val initial = DoubleArray(n) { 1.0 / n }
 
-        requireCommand(objective != "target_return" || targetReturn != null) {
-            "target_return objective requires targetReturn"
+        if (objective == "target_return") {
+            requireCommand(targetReturn != null) { "target_return objective requires targetReturn" }
         }
-        requireCommand(objective != "target_volatility" || targetVolatility != null) {
-            "target_volatility objective requires targetVolatility"
+        if (objective == "target_volatility") {
+            requireCommand(targetVolatility != null) { "target_volatility objective requires targetVolatility" }
         }
 
         val objectiveFn = MultivariateFunction { weights ->
@@ -51,8 +51,16 @@ class MeanVarianceOptimizer {
             val volatility = sqrt(variance)
             when (objective) {
                 "min_volatility" -> variance
-                "target_return" -> penalty(portReturn, targetReturn, variance)
-                "target_volatility" -> (volatility - targetVolatility) * (volatility - targetVolatility) - portReturn
+                "target_return" -> penalty(
+                    portReturn,
+                    targetReturn ?: throw InvalidCommandException("target_return objective requires targetReturn"),
+                    variance
+                )
+                "target_volatility" -> {
+                    val target = targetVolatility
+                        ?: throw InvalidCommandException("target_volatility objective requires targetVolatility")
+                    (volatility - target) * (volatility - target) - portReturn
+                }
                 else -> -(portReturn - riskFreeRate / 252) / volatility
             }
         }
@@ -97,7 +105,12 @@ class MeanVarianceOptimizer {
         return Array(minLen) { row -> DoubleArray(returns.size) { col -> returns[col][returns[col].size - minLen + row] } }
     }
 
+    @OptIn(kotlin.contracts.ExperimentalContracts::class)
     private inline fun requireCommand(value: Boolean, lazyMessage: () -> String) {
+        kotlin.contracts.contract {
+            callsInPlace(lazyMessage, kotlin.contracts.InvocationKind.AT_MOST_ONCE)
+            returns() implies value
+        }
         if (!value) throw InvalidCommandException(lazyMessage())
     }
 }

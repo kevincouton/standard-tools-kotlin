@@ -4,7 +4,9 @@ import com.example.starter.portfolio.application.port.inbound.OptimizePortfolioU
 import com.example.starter.portfolio.domain.Portfolio
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -21,11 +23,12 @@ class PortfolioController(
 
     @PostMapping("/optimize")
     fun optimize(@RequestBody request: OptimizeRequestDto): Mono<Portfolio> = Mono.fromCallable {
+        validateOptimizeRequest(request)
         optimizePortfolioUseCase.optimize(
             OptimizePortfolioUseCase.OptimizeCommand(
                 tickers = request.symbols.map { Ticker(it) },
                 range = DateRange(request.startDate, request.endDate),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 objective = request.objective,
                 riskFreeRate = request.riskFreeRate,
                 targetReturn = request.targetReturn,
@@ -36,6 +39,19 @@ class PortfolioController(
             )
         )
     }.subscribeOn(Schedulers.boundedElastic())
+
+    private fun validateOptimizeRequest(request: OptimizeRequestDto) {
+        val supportedObjectives = setOf("max_sharpe", "min_volatility", "target_return", "target_volatility")
+        if (request.objective !in supportedObjectives) {
+            throw InvalidCommandException("unsupported objective '${request.objective}'; must be one of ${supportedObjectives.joinToString()}")
+        }
+        if (request.objective == "target_return" && request.targetReturn == null) {
+            throw InvalidCommandException("target_return objective requires targetReturn")
+        }
+        if (request.objective == "target_volatility" && request.targetVolatility == null) {
+            throw InvalidCommandException("target_volatility objective requires targetVolatility")
+        }
+    }
 }
 
 data class OptimizeRequestDto(
