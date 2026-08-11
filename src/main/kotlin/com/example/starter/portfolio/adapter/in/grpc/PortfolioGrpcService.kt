@@ -9,6 +9,7 @@ import com.example.starter.portfolio.grpc.RiskParityRequest
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.grpc.server.service.GrpcService
@@ -24,7 +25,7 @@ class PortfolioGrpcService(
             OptimizePortfolioUseCase.OptimizeCommand(
                 tickers = request.symbolsList.map { Ticker(it) },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 objective = request.objective.takeIf { it.isNotBlank() } ?: "max_sharpe",
                 riskFreeRate = request.riskFreeRate.takeIf { it > 0 } ?: 0.02,
@@ -42,7 +43,7 @@ class PortfolioGrpcService(
             OptimizePortfolioUseCase.RiskParityCommand(
                 tickers = request.symbolsList.map { Ticker(it) },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 riskBudget = request.riskBudgetMap
             )
@@ -66,7 +67,7 @@ class PortfolioGrpcService(
                     }
                 ),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 riskAversion = request.riskAversion.takeIf { it > 0 } ?: 2.5,
                 tau = request.tau.takeIf { it > 0 } ?: 0.05

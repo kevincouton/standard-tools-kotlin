@@ -5,6 +5,7 @@ import com.example.starter.backtest.domain.BacktestResult
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -39,7 +40,7 @@ class BacktestController(
                 strategy = request.strategy,
                 parameters = request.parameters,
                 range = DateRange(request.startDate, request.endDate),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider,
                 initialCapital = request.initialCapital,
                 commissionPct = request.commissionPct,
@@ -55,7 +56,7 @@ class BacktestController(
                 tickers = request.symbols.map { Ticker(it) },
                 weights = request.weights,
                 range = DateRange(request.startDate, request.endDate),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider,
                 initialCapital = request.initialCapital,
                 commissionPct = request.commissionPct,
@@ -74,7 +75,7 @@ class BacktestController(
                 exitZ = request.exitZ,
                 zScoreWindow = request.zScoreWindow,
                 range = DateRange(request.startDate, request.endDate),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider,
                 initialCapital = request.initialCapital
             )

@@ -1,5 +1,6 @@
 package com.example.starter.indicators.domain
 
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.OHLCV
 import com.example.starter.shared.domain.PriceSeries
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
@@ -21,7 +22,7 @@ class IndicatorCalculator {
             "atr" -> atr(series, parameters.intParam("period", 14))
             "obv" -> obv(series)
             "vwap" -> vwap(series)
-            else -> throw IllegalArgumentException("Unknown indicator: $name")
+            else -> throw InvalidCommandException("Unknown indicator: $name")
         }
     }
 

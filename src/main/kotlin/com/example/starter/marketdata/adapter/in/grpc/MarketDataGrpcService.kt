@@ -9,6 +9,7 @@ import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.grpc.server.service.GrpcService
@@ -51,10 +52,5 @@ class MarketDataGrpcService(
         parseInterval(interval)
     }
 
-    private fun parseInterval(interval: String): BarInterval {
-        return BarInterval.entries.find { it.name.equals(interval.trim(), ignoreCase = true) }
-            ?: throw InvalidCommandException(
-                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
-            )
-    }
+    private fun parseInterval(interval: String): BarInterval = interval.toBarInterval()
 }

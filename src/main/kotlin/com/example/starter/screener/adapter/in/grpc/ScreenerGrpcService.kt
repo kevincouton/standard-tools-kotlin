@@ -9,6 +9,7 @@ import com.example.starter.screener.grpc.ScreenerServiceGrpcKt
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.grpc.server.service.GrpcService
@@ -30,7 +31,7 @@ class ScreenerGrpcService(
                     rsiMax = request.rsiMax.takeIf { it > 0 }
                 ),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 sortBy = request.sortBy.takeIf { it.isNotBlank() },
                 ascending = request.ascending

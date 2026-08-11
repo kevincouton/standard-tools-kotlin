@@ -6,6 +6,7 @@ import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.OHLCV
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -51,10 +52,5 @@ class MarketDataController(
         parseInterval(interval)
     }
 
-    private fun parseInterval(interval: String): BarInterval {
-        return BarInterval.entries.find { it.name.equals(interval.trim(), ignoreCase = true) }
-            ?: throw InvalidCommandException(
-                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
-            )
-    }
+    private fun parseInterval(interval: String): BarInterval = interval.toBarInterval()
 }

@@ -8,6 +8,12 @@ enum class BarInterval {
     DAILY, WEEKLY, MONTHLY
 }
 
+fun String.toBarInterval(): BarInterval =
+    BarInterval.entries.find { it.name.equals(this.trim(), ignoreCase = true) }
+        ?: throw InvalidCommandException(
+            "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
+        )
+
 data class Ticker(
     val symbol: String,
     val exchange: String? = null

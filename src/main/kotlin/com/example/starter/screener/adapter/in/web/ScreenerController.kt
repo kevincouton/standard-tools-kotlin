@@ -6,6 +6,7 @@ import com.example.starter.screener.domain.ScreenResult
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -44,7 +45,7 @@ class ScreenerController(
                     rsiMax = rsiMax
                 ),
                 range = DateRange(startDate, endDate),
-                interval = BarInterval.valueOf(interval.uppercase()),
+                interval = interval.toBarInterval(),
                 provider = provider,
                 sortBy = sortBy,
                 ascending = ascending

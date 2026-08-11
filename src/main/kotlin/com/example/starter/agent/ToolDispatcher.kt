@@ -18,6 +18,7 @@ import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -578,7 +579,7 @@ class ToolDispatcher(
             "get_order" -> mapOf("order" to orderMap(getOrderUseCase.getOrder(UUID.fromString(stringArg(arguments, "orderId")))))
             "cancel_order" -> mapOf("order" to orderMap(cancelOrderUseCase.cancelOrder(UUID.fromString(stringArg(arguments, "orderId")))))
             "screener_run" -> screenerResult(screenStocksUseCase.screen(screenCommand(arguments)))
-            else -> throw IllegalArgumentException("Unknown tool: $name")
+            else -> throw InvalidCommandException("Unknown tool: $name")
         }
     }
 
@@ -596,10 +597,7 @@ class ToolDispatcher(
 
     private fun interval(arguments: Map<String, Any>): BarInterval {
         val value = arguments["interval"] as? String ?: "DAILY"
-        return BarInterval.entries.find { it.name.equals(value.trim(), ignoreCase = true) }
-            ?: throw InvalidCommandException(
-                "interval must be one of ${BarInterval.entries.joinToString { it.name }}"
-            )
+        return value.toBarInterval()
     }
 
     private fun provider(arguments: Map<String, Any>): String? = arguments["provider"] as? String

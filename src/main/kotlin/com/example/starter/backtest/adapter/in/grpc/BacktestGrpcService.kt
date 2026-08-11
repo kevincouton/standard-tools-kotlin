@@ -13,6 +13,7 @@ import com.example.starter.backtest.grpc.WalkForwardRequest
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.grpc.server.service.GrpcService
@@ -30,7 +31,7 @@ class BacktestGrpcService(
                 strategy = request.strategy,
                 parameters = request.parametersMap.mapValues { it.value.toDoubleOrString() },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0,
                 commissionPct = request.commissionPct.takeIf { it > 0 } ?: 0.001,
@@ -46,7 +47,7 @@ class BacktestGrpcService(
                 tickers = request.symbolsList.map { Ticker(it) },
                 weights = request.weightsMap,
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0,
                 commissionPct = request.commissionPct.takeIf { it > 0 } ?: 0.001,
@@ -65,7 +66,7 @@ class BacktestGrpcService(
                 exitZ = request.exitZ.takeIf { it != 0.0 } ?: 0.5,
                 zScoreWindow = request.zScoreWindow.takeIf { it > 0 } ?: 30,
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 initialCapital = request.initialCapital.takeIf { it > 0 } ?: 10_000.0
             )
@@ -84,7 +85,7 @@ class BacktestGrpcService(
                 testSize = request.testSize.takeIf { it > 0 } ?: 63,
                 metric = request.metric.takeIf { it.isNotBlank() } ?: "sharpe_ratio",
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         )
@@ -101,7 +102,7 @@ class BacktestGrpcService(
                 nSimulations = request.nSimulations.takeIf { it > 0 } ?: 1_000,
                 blockSize = request.blockSize.takeIf { it > 0 } ?: 20,
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         )

@@ -87,6 +87,36 @@ class ValueObjectsTest {
     }
 
     @Test
+    fun `toBarInterval parses uppercase value`() {
+        expectThat("DAILY".toBarInterval()).isEqualTo(BarInterval.DAILY)
+    }
+
+    @Test
+    fun `toBarInterval parses lowercase value`() {
+        expectThat("weekly".toBarInterval()).isEqualTo(BarInterval.WEEKLY)
+    }
+
+    @Test
+    fun `toBarInterval parses mixed case value`() {
+        expectThat("Monthly".toBarInterval()).isEqualTo(BarInterval.MONTHLY)
+    }
+
+    @Test
+    fun `toBarInterval trims whitespace`() {
+        expectThat("  daily  ".toBarInterval()).isEqualTo(BarInterval.DAILY)
+    }
+
+    @Test
+    fun `toBarInterval rejects invalid value`() {
+        val exception = assertThrows<InvalidCommandException> {
+            "hourly".toBarInterval()
+        }
+        expectThat(exception.message).isEqualTo(
+            "Invalid command: interval must be one of ${BarInterval.entries.joinToString { it.name }}"
+        )
+    }
+
+    @Test
     fun `CacheKey toComposite produces expected string`() {
         val key = CacheKey(
             provider = "yahoo",

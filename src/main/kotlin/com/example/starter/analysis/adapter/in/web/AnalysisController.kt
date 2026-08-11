@@ -5,6 +5,7 @@ import com.example.starter.analysis.domain.AnalysisResult
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -35,7 +36,7 @@ class AnalysisController(
             asset = Ticker(asset),
             benchmark = Ticker(benchmark),
             range = DateRange(startDate, endDate),
-            interval = BarInterval.valueOf(interval.uppercase()),
+            interval = interval.toBarInterval(),
             provider = provider
         )
     )
@@ -54,7 +55,7 @@ class AnalysisController(
             assetA = Ticker(symbolA),
             assetB = Ticker(symbolB),
             range = DateRange(startDate, endDate),
-            interval = BarInterval.valueOf(interval.uppercase()),
+            interval = interval.toBarInterval(),
             zScoreWindow = zScoreWindow,
             provider = provider
         )
@@ -73,7 +74,7 @@ class AnalysisController(
         RunAnalysisUseCase.HurstCommand(
             ticker = Ticker(symbol),
             range = DateRange(startDate, endDate),
-            interval = BarInterval.valueOf(interval.uppercase()),
+            interval = interval.toBarInterval(),
             method = method,
             rollingWindow = rollingWindow,
             provider = provider
@@ -92,7 +93,7 @@ class AnalysisController(
         RunAnalysisUseCase.PcaCommand(
             tickers = symbols.map { Ticker(it) },
             range = DateRange(startDate, endDate),
-            interval = BarInterval.valueOf(interval.uppercase()),
+            interval = interval.toBarInterval(),
             nComponents = nComponents,
             provider = provider
         )
@@ -109,7 +110,7 @@ class AnalysisController(
         RunAnalysisUseCase.CorrelationCommand(
             tickers = symbols.map { Ticker(it) },
             range = DateRange(startDate, endDate),
-            interval = BarInterval.valueOf(interval.uppercase()),
+            interval = interval.toBarInterval(),
             provider = provider
         )
     )
@@ -121,7 +122,7 @@ class AnalysisController(
                 asset = Ticker(request.asset),
                 factors = request.factors.mapValues { Ticker(it.value) },
                 range = DateRange(request.startDate, request.endDate),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider
             )
         )

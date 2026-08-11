@@ -21,6 +21,7 @@ import com.example.starter.analysis.grpc.RegressionResponse
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
 import com.example.starter.shared.domain.Ticker
+import com.example.starter.shared.domain.toBarInterval
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.grpc.server.service.GrpcService
@@ -37,7 +38,7 @@ class AnalysisGrpcService(
                 asset = Ticker(request.assetSymbol),
                 benchmark = Ticker(request.benchmarkSymbol),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         ) as com.example.starter.analysis.domain.RegressionResult
@@ -55,7 +56,7 @@ class AnalysisGrpcService(
                 assetA = Ticker(request.symbolA),
                 assetB = Ticker(request.symbolB),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 zScoreWindow = request.zScoreWindow
             )
@@ -74,7 +75,7 @@ class AnalysisGrpcService(
             RunAnalysisUseCase.HurstCommand(
                 ticker = Ticker(request.symbol),
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 method = request.method,
                 rollingWindow = request.rollingWindow.takeIf { it > 0 }
@@ -91,7 +92,7 @@ class AnalysisGrpcService(
             RunAnalysisUseCase.PcaCommand(
                 tickers = request.symbolsList.map { Ticker(it) },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() },
                 nComponents = request.nComponents.takeIf { it > 0 }
             )
@@ -107,7 +108,7 @@ class AnalysisGrpcService(
             RunAnalysisUseCase.CorrelationCommand(
                 tickers = request.symbolsList.map { Ticker(it) },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         ) as com.example.starter.analysis.domain.CorrelationResult
@@ -126,7 +127,7 @@ class AnalysisGrpcService(
                 asset = Ticker(request.assetSymbol),
                 factors = request.factorSymbolsMap.mapValues { Ticker(it.value) },
                 range = DateRange(LocalDate.parse(request.startDate), LocalDate.parse(request.endDate)),
-                interval = BarInterval.valueOf(request.interval.uppercase()),
+                interval = request.interval.toBarInterval(),
                 provider = request.provider.takeIf { it.isNotBlank() }
             )
         ) as com.example.starter.analysis.domain.MultiFactorResult

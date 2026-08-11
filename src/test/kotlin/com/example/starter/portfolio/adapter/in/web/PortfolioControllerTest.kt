@@ -9,6 +9,7 @@ import org.junit.jupiter.api.assertThrows
 import strikt.api.expectThat
 import strikt.assertions.contains
 import strikt.assertions.isEqualTo
+import strikt.assertions.isNotNull
 import java.time.LocalDate
 
 @Tag("unit")
@@ -58,6 +59,6 @@ class PortfolioControllerTest {
             controller.optimize(baseRequest.copy(interval = "1d")).block()
         }
 
-        expectThat(error.message).contains("interval must be one of")
+        expectThat(error.message).isNotNull().contains("interval must be one of")
     }
 }
