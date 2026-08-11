@@ -13,6 +13,7 @@ import com.example.starter.metrics.application.port.inbound.CalculateMetricsUseC
 import com.example.starter.metrics.domain.RiskMetrics
 import com.example.starter.shared.domain.BarInterval
 import com.example.starter.shared.domain.DateRange
+import com.example.starter.shared.domain.InvalidCommandException
 import com.example.starter.shared.domain.OHLCV
 import com.example.starter.shared.domain.Ticker
 import io.mockk.every
@@ -244,11 +245,11 @@ class AgentToolsIntegrationTest {
     }
 
     @Test
-    fun `dispatch unknown tool throws IllegalArgumentException`() {
-        val thrown = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+    fun `dispatch unknown tool throws InvalidCommandException`() {
+        val thrown = org.junit.jupiter.api.assertThrows<InvalidCommandException> {
             toolDispatcher.dispatch("unknown_tool", emptyMap())
         }
-        expectThat(thrown.message).isEqualTo("Unknown tool: unknown_tool")
+        expectThat(thrown.message).isEqualTo("Invalid command: Unknown tool: unknown_tool")
     }
 
     @Test
