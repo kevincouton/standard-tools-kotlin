@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.gradle \
 FROM gcr.io/distroless/cc-debian12:latest
 WORKDIR /app
 
-COPY --from=builder /app/build/native/nativeCompile/kotlin-grpc-rest-starter /app/application
+COPY --from=builder /app/build/native/nativeCompile/standard-tools-kotlin /app/application
 
 EXPOSE 8080 9090
 ENTRYPOINT ["/app/application"]

@@ -129,11 +129,11 @@ protobuf {
 graalvmNative {
     binaries {
         named("main") {
-            imageName.set("kotlin-grpc-rest-starter")
+            imageName.set("standard-tools-kotlin")
             buildArgs.add("-H:+ReportExceptionStackTraces")
         }
         named("test") {
-            imageName.set("kotlin-grpc-rest-starter-test")
+            imageName.set("standard-tools-kotlin-test")
             buildArgs.add("-H:+ReportExceptionStackTraces")
         }
     }

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 RUNTIME="${CONTAINER_RUNTIME:-podman}"
-TAG="${1:-kotlin-grpc-rest-starter:latest}"
+TAG="${1:-standard-tools-kotlin:latest}"
 
 echo "Building image with $RUNTIME as $TAG..."
 $RUNTIME build -t "$TAG" .

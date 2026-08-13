@@ -1,4 +1,4 @@
-# kotlin-grpc-rest-starter
+# standard-tools-kotlin
 
 Spring Boot 4.1.0 + Kotlin 2.3.21 template exposing an Order domain via REST, gRPC, A2A, and MCP, backed by PostgreSQL 18 with unit, integration, and E2E tests. Also includes a GraalVM native image build path.
 
@@ -175,7 +175,7 @@ E2E tests use `ScenarioLogger` to print a visual scenario tree to the console:
 scripts/build-image.sh
 podman run -p 8080:8080 -p 9090:9090 \
   -e DB_HOST=host.containers.internal \
-  kotlin-grpc-rest-starter:latest
+  standard-tools-kotlin:latest
 ```
 
 ### Native image
@@ -189,10 +189,10 @@ Build the native executable:
 Build and run the native container:
 
 ```bash
-podman build -f Dockerfile.native -t kotlin-grpc-rest-starter:native .
+podman build -f Dockerfile.native -t standard-tools-kotlin:native .
 podman run -p 8080:8080 -p 9090:9090 \
   -e DB_HOST=host.containers.internal \
-  kotlin-grpc-rest-starter:native
+  standard-tools-kotlin:native
 ```
 
 Native image AOT hints are registered in `src/main/kotlin/com/example/starter/config/NativeImageHints.kt`, covering gRPC service classes, proto-generated classes, JPA entities, and the Jackson Kotlin module.
