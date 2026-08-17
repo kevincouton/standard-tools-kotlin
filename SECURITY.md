@@ -14,4 +14,4 @@ We will acknowledge receipt within 48 hours and aim to provide a fix or mitigati
 
 - Secrets and credentials are loaded from environment variables, never committed to source.
 
-> **Note:** Authentication and TLS termination are not yet implemented in this repository. Deploy behind a reverse proxy that provides TLS and access control. Dependency scanning is not yet wired into CI.
+> **Note:** API-key authentication is implemented for REST, gRPC, A2A, and MCP and is enabled by default (`SQT_AUTH_ENABLED=true`). TLS termination and dependency scanning are not yet implemented. Deploy behind a reverse proxy that provides TLS. Audit records are written on every agent-tool dispatch; the `STANDARD_TOOLS_AUDIT_ENABLED` variable referenced in `.mise.toml` is not currently consumed by the application.

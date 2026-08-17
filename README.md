@@ -116,7 +116,7 @@ The datasource can be customized with environment variables:
 - **Audit verify** — `POST http://localhost:8080/api/v1/audit/verify`
 - **Audit replay** — `POST http://localhost:8080/api/v1/audit/replay/{requestId}`
 
-Audit logging is controlled by `STANDARD_TOOLS_AUDIT_ENABLED` (default `true` via `.mise.toml`).
+Audit records are written on every agent-tool dispatch. The `STANDARD_TOOLS_AUDIT_ENABLED` variable in `.mise.toml` is reserved for future use and is not currently consumed by the application.
 
 ### Example requests
 
