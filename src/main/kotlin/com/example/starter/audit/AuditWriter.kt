@@ -11,7 +11,8 @@ import java.util.UUID
 
 @Service
 class AuditWriter(
-    private val repository: AuditRecordRepository
+    private val repository: AuditRecordRepository,
+    private val chainHeadRepository: AuditChainHeadRepository
 ) {
 
     private val canonicalMapper: ObjectMapper = JsonMapper.builder()
@@ -54,7 +55,12 @@ class AuditWriter(
         errorType: String? = null,
         errorMessage: String? = null
     ): AuditRecord {
-        val prevRecordHash = repository.findTopByOrderByTimestampDesc()?.recordHash ?: GENESIS_HASH
+        // Lock the singleton chain-head row (SELECT ... FOR UPDATE) so concurrent
+        // writers are serialized at the database level instead of racing on
+        // read-then-write of the latest record.
+        val head = chainHeadRepository.findByIdForUpdate()
+            ?: chainHeadRepository.save(AuditChainHead())
+        val prevRecordHash = head.headHash
         val record = AuditRecord(
             requestId = requestId,
             toolName = toolName,
@@ -70,7 +76,10 @@ class AuditWriter(
             prevRecordHash = prevRecordHash
         )
         record.recordHash = computeRecordHash(record)
-        return repository.save(record)
+        val saved = repository.save(record)
+        head.headHash = saved.recordHash
+        chainHeadRepository.save(head)
+        return saved
     }
 
     fun hashOf(data: Any): String = HashUtils.sha256Truncated16(canonicalJson(data))
