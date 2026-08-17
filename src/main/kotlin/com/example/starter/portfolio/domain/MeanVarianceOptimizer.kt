@@ -15,6 +15,10 @@ import kotlin.math.sqrt
 
 class MeanVarianceOptimizer {
 
+    companion object {
+        const val MAX_PORTFOLIO_ASSETS = 100
+    }
+
     fun optimize(
         returns: List<List<Double>>,
         tickers: List<String>,
@@ -26,6 +30,9 @@ class MeanVarianceOptimizer {
         maxWeight: Double? = null
     ): Portfolio {
         require(returns.size == tickers.size && returns.isNotEmpty())
+        require(tickers.size <= MAX_PORTFOLIO_ASSETS) {
+            "portfolio optimization supports at most $MAX_PORTFOLIO_ASSETS assets"
+        }
         val aligned = align(returns)
         val cov = Covariance(aligned).covarianceMatrix
         val meanReturns = returns.map { it.average() }.toDoubleArray()

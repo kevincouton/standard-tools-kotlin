@@ -4,6 +4,11 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 
 class MonteCarloEngine {
 
+    companion object {
+        const val MAX_MONTE_CARLO_SIMULATIONS = 100_000
+        const val MAX_MONTE_CARLO_HORIZON_DAYS = 2_520
+    }
+
     fun simulateForwardPaths(
         returns: List<Double>,
         horizonDays: Int = 252,
@@ -12,6 +17,12 @@ class MonteCarloEngine {
         initialCapital: Double = 10_000.0,
         seed: Long? = null
     ): Map<String, Any> {
+        require(nSimulations in 1..MAX_MONTE_CARLO_SIMULATIONS) {
+            "nSimulations must be between 1 and $MAX_MONTE_CARLO_SIMULATIONS"
+        }
+        require(horizonDays in 1..MAX_MONTE_CARLO_HORIZON_DAYS) {
+            "horizonDays must be between 1 and $MAX_MONTE_CARLO_HORIZON_DAYS"
+        }
         val random = seed?.let { kotlin.random.Random(it) } ?: kotlin.random.Random.Default
         val terminals = DoubleArray(nSimulations)
         repeat(nSimulations) { sim ->

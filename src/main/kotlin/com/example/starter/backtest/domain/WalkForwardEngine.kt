@@ -7,6 +7,11 @@ class WalkForwardEngine(
     private val strategies: Map<String, Strategy> = Strategies.REGISTRY
 ) {
 
+    companion object {
+        const val MAX_WALK_FORWARD_WINDOW = 10_000
+        const val MAX_WALK_FORWARD_COMBINATIONS = 10_000
+    }
+
     fun run(
         series: PriceSeries,
         strategyName: String,
@@ -16,7 +21,17 @@ class WalkForwardEngine(
         metric: String = "sharpe_ratio",
         initialCapital: Double = 10_000.0
     ): BacktestResult {
+        require(trainSize > 0 && testSize > 0) { "trainSize and testSize must be positive" }
+        require(trainSize <= MAX_WALK_FORWARD_WINDOW && testSize <= MAX_WALK_FORWARD_WINDOW) {
+            "trainSize and testSize must be <= $MAX_WALK_FORWARD_WINDOW"
+        }
+
         val combinations = cartesianProduct(parameterGrid)
+        require(combinations.isNotEmpty()) { "walk-forward requires a non-empty parameter grid" }
+        require(combinations.size <= MAX_WALK_FORWARD_COMBINATIONS) {
+            "parameter grid produces ${combinations.size} combinations; maximum is $MAX_WALK_FORWARD_COMBINATIONS"
+        }
+
         val outOfSampleReturns = mutableListOf<Double>()
         val windowParams = mutableListOf<Map<String, Any>>()
         var start = 0

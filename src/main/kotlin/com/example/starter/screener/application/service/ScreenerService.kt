@@ -18,7 +18,14 @@ class ScreenerService(
     private val indicatorCalculator: IndicatorCalculator
 ) : ScreenStocksUseCase {
 
+    companion object {
+        const val MAX_SCREEN_TICKERS = 500
+    }
+
     override fun screen(command: ScreenStocksUseCase.ScreenCommand): ScreenResult {
+        require(command.tickers.size <= MAX_SCREEN_TICKERS) {
+            "screener supports at most $MAX_SCREEN_TICKERS tickers"
+        }
         val matches = mutableListOf<ScreenMatch>()
         val failed = mutableListOf<String>()
         command.tickers.forEach { ticker ->

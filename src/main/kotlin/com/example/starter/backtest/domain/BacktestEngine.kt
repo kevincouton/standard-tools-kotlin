@@ -7,6 +7,10 @@ import java.time.LocalDate
 
 class BacktestEngine(private val riskReturnCalculator: RiskReturnCalculator = RiskReturnCalculator()) {
 
+    companion object {
+        const val MAX_BACKTEST_BARS = 50_000
+    }
+
     fun run(
         series: PriceSeries,
         signals: List<Double>,
@@ -16,6 +20,9 @@ class BacktestEngine(private val riskReturnCalculator: RiskReturnCalculator = Ri
         strategyName: String = "custom"
     ): BacktestResult {
         require(series.size == signals.size) { "series and signals must align" }
+        require(series.size <= MAX_BACKTEST_BARS) {
+            "backtest series exceeds maximum of $MAX_BACKTEST_BARS bars"
+        }
         var cash = initialCapital
         var position = 0.0
         val trades = mutableListOf<Trade>()

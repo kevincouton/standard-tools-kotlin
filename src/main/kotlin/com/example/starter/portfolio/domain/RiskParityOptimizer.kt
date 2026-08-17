@@ -7,7 +7,15 @@ import kotlin.math.sqrt
 
 class RiskParityOptimizer {
 
+    companion object {
+        const val MAX_PORTFOLIO_ASSETS = 100
+    }
+
     fun optimize(returns: List<List<Double>>, tickers: List<String>, riskBudget: Map<String, Double>? = null): Portfolio {
+        require(tickers.isNotEmpty() && returns.size == tickers.size)
+        require(tickers.size <= MAX_PORTFOLIO_ASSETS) {
+            "portfolio optimization supports at most $MAX_PORTFOLIO_ASSETS assets"
+        }
         val aligned = align(returns)
         val cov = Covariance(aligned).covarianceMatrix
         val budget = tickers.map { riskBudget?.get(it) ?: 1.0 / tickers.size }.toDoubleArray()
