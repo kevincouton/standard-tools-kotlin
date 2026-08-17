@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.spring.boot.starter.grpc.server)
     implementation(libs.spring.boot.starter.flyway)
+    implementation(libs.spring.boot.starter.actuator)
     implementation(libs.grpc.kotlin.stub)
     implementation(libs.flyway.postgresql)
     runtimeOnly(libs.postgresql)
