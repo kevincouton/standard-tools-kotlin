@@ -1,6 +1,8 @@
 package com.example.starter.adapter.`in`.mcp
 
 import com.example.starter.shared.domain.InvalidCommandException
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
@@ -10,16 +12,25 @@ import reactor.core.scheduler.Schedulers
 
 @RestController
 class McpMessageController(
-    private val toolHandler: McpToolHandler
+    private val toolHandler: McpToolHandler,
+    private val sessionManager: McpSessionManager
 ) {
 
     @PostMapping("/mcp/messages", consumes = ["application/json"], produces = ["application/json"])
     fun message(
         @RequestParam sessionId: String,
         @RequestBody request: McpJsonRpcRequest
-    ): Mono<McpJsonRpcResponse> {
+    ): Mono<ResponseEntity<Any>> {
         return Mono.fromCallable { dispatch(request) }
             .subscribeOn(Schedulers.boundedElastic())
+            .map { response ->
+                if (sessionManager.hasSession(sessionId)) {
+                    sessionManager.send(sessionId, response)
+                    ResponseEntity.accepted().build<Any>()
+                } else {
+                    ResponseEntity.ok(response)
+                }
+            }
     }
 
     private fun dispatch(request: McpJsonRpcRequest): McpJsonRpcResponse {
@@ -30,7 +41,7 @@ class McpMessageController(
                     result = mapOf(
                         "protocolVersion" to "2024-11-05",
                         "capabilities" to emptyMap<String, Any>(),
-                        "serverInfo" to mapOf("name" to "order-mcp-server", "version" to "1.0.0")
+                        "serverInfo" to mapOf("name" to "standard-tools-mcp", "version" to "1.0.0")
                     )
                 )
                 "tools/call" -> {

@@ -446,7 +446,7 @@ class ToolDispatcher(
                     )
                 )
             )
-            "get_capacity_report" -> throw NotImplementedError("Capacity report is not yet implemented")
+            "get_capacity_report" -> capacityReport(arguments)
             "get_data_quality_report" -> dataQualityReport(arguments)
             "run_backtest_compact" -> compactBacktestSummary(
                 runBacktestUseCase.execute(
@@ -549,8 +549,8 @@ class ToolDispatcher(
                     )
                 )
             )
-            "run_stress_test" -> throw NotImplementedError("Stress test is not yet implemented")
-            "get_liquidity_metrics" -> throw NotImplementedError("Liquidity metrics are not yet implemented")
+            "run_stress_test" -> stressTestResult(arguments)
+            "get_liquidity_metrics" -> liquidityMetrics(arguments)
             "marketdata_fetch" -> marketDataResult(
                 fetchMarketDataUseCase.fetch(
                     FetchMarketDataUseCase.FetchMarketDataCommand(
@@ -861,6 +861,85 @@ class ToolDispatcher(
             "ohlcViolations" to ohclcViolations,
             "firstDate" to (series.firstOrNull()?.date?.toString() ?: ""),
             "lastDate" to (series.lastOrNull()?.date?.toString() ?: "")
+        )
+    }
+
+    private fun capacityReport(arguments: Map<String, Any>): Map<String, Any> {
+        val series = fetchMarketDataUseCase.fetch(
+            FetchMarketDataUseCase.FetchMarketDataCommand(
+                ticker = ticker(arguments),
+                range = range(arguments),
+                interval = interval(arguments),
+                provider = provider(arguments)
+            )
+        )
+        val targetAum = doubleArg(arguments, "targetAum", 1_000_000.0)
+        val participationRate = doubleArg(arguments, "participationRate", 0.10).coerceIn(0.0001, 1.0)
+        val avgDailyDollarVolume = if (series.isEmpty()) 0.0 else
+            series.map { it.close.toDouble() * it.volume }.average()
+        val estimatedCapacity = avgDailyDollarVolume * participationRate
+        val daysToTrade = if (estimatedCapacity > 0) targetAum / estimatedCapacity else Double.POSITIVE_INFINITY
+        return mapOf(
+            "symbol" to stringArg(arguments, "symbol"),
+            "targetAum" to targetAum,
+            "participationRate" to participationRate,
+            "averageDailyDollarVolume" to avgDailyDollarVolume,
+            "estimatedCapacity" to estimatedCapacity,
+            "daysToTradeTargetAum" to daysToTrade
+        )
+    }
+
+    private fun liquidityMetrics(arguments: Map<String, Any>): Map<String, Any> {
+        val series = fetchMarketDataUseCase.fetch(
+            FetchMarketDataUseCase.FetchMarketDataCommand(
+                ticker = ticker(arguments),
+                range = range(arguments),
+                interval = interval(arguments),
+                provider = provider(arguments)
+            )
+        )
+        val avgVolume = if (series.isEmpty()) 0.0 else series.map { it.volume.toDouble() }.average()
+        val avgDollarVolume = if (series.isEmpty()) 0.0 else
+            series.map { it.close.toDouble() * it.volume }.average()
+        val avgSpread = if (series.isEmpty()) 0.0 else
+            series.map { (it.high.toDouble() - it.low.toDouble()) / it.close.toDouble() }.average()
+        return mapOf(
+            "symbol" to stringArg(arguments, "symbol"),
+            "averageVolume" to avgVolume,
+            "averageDollarVolume" to avgDollarVolume,
+            "averageRelativeSpread" to avgSpread,
+            "dataPoints" to series.size
+        )
+    }
+
+    private fun stressTestResult(arguments: Map<String, Any>): Map<String, Any> {
+        val result = runBacktestUseCase.execute(
+            RunBacktestUseCase.SingleAssetCommand(
+                ticker = ticker(arguments),
+                strategy = stringArg(arguments, "strategy"),
+                parameters = objectArg(arguments, "parameters"),
+                range = range(arguments),
+                interval = interval(arguments),
+                provider = provider(arguments),
+                initialCapital = doubleArg(arguments, "initialCapital", 10_000.0),
+                commissionPct = doubleArg(arguments, "commissionPct", 0.001),
+                slippagePct = doubleArg(arguments, "slippagePct", 0.0005)
+            )
+        )
+        val returns = result.equityCurve.zipWithNext { a, b ->
+            if (a.equity == 0.0) 0.0 else (b.equity - a.equity) / a.equity
+        }
+        val maxDailyLoss = if (returns.isEmpty()) 0.0 else returns.min()
+        val worstTradePnl = result.trades.minOfOrNull { it.pnl } ?: 0.0
+        val maxDrawdown = result.metrics?.maxDrawdown?.toDouble() ?: result.drawdownEpisodes.maxOfOrNull { it.depth } ?: 0.0
+        return mapOf(
+            "symbol" to stringArg(arguments, "symbol"),
+            "strategy" to result.strategyName,
+            "maxDailyLoss" to maxDailyLoss,
+            "worstTradePnl" to worstTradePnl,
+            "maxDrawdown" to maxDrawdown,
+            "crisisScenarioLoss" to (maxDailyLoss * 10.0),
+            "trades" to result.trades.size
         )
     }
 

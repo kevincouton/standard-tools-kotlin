@@ -253,17 +253,29 @@ class AgentToolsIntegrationTest {
     }
 
     @Test
-    fun `dispatch not implemented tool throws NotImplementedError`() {
-        org.junit.jupiter.api.assertThrows<NotImplementedError> {
-            toolDispatcher.dispatch(
-                "get_capacity_report",
-                mapOf(
-                    "symbol" to "AAPL",
-                    "startDate" to "2024-01-01",
-                    "endDate" to "2024-01-31",
-                    "interval" to "DAILY"
-                )
+    fun `dispatch capacity report returns capacity estimate`() {
+        every { fetchMarketDataUseCase.fetch(any()) } returns listOf(
+            OHLCV(
+                ticker = Ticker("AAPL"),
+                date = LocalDate.of(2024, 1, 2),
+                open = BigDecimal("100"),
+                high = BigDecimal("101"),
+                low = BigDecimal("99"),
+                close = BigDecimal("100.5"),
+                volume = 1_000_000
             )
-        }
+        )
+
+        val result = toolDispatcher.dispatch(
+            "get_capacity_report",
+            mapOf(
+                "symbol" to "AAPL",
+                "startDate" to "2024-01-01",
+                "endDate" to "2024-01-31",
+                "interval" to "DAILY"
+            )
+        )
+        expectThat(result["symbol"]).isEqualTo("AAPL")
+        expectThat(result["estimatedCapacity"]).isNotNull()
     }
 }

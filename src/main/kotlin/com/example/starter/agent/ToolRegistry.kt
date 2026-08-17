@@ -440,7 +440,7 @@ class ToolRegistry {
         ),
         ToolDefinition(
             name = "get_capacity_report",
-            description = "Estimate strategy capacity and market impact (not yet implemented)",
+            description = "Estimate strategy capacity and market impact from historical volume",
             parameters = dateRangeSchema(
                 required = listOf("symbol", "startDate", "endDate", "interval"),
                 extra = mapOf(
@@ -549,12 +549,12 @@ class ToolRegistry {
         ),
         ToolDefinition(
             name = "run_stress_test",
-            description = "Run a stress-test scenario on a strategy (not yet implemented)",
+            description = "Run a stress-test scenario on a strategy",
             parameters = singleAssetBacktestSchema()
         ),
         ToolDefinition(
             name = "get_liquidity_metrics",
-            description = "Compute liquidity metrics for an asset (not yet implemented)",
+            description = "Compute basic liquidity metrics for an asset",
             parameters = singleAssetMarketDataSchema()
         ),
         ToolDefinition(

@@ -15,6 +15,16 @@ class AuditReplay(
     private val objectMapper: ObjectMapper
 ) {
 
+    companion object {
+        // Replaying these tools could create duplicate orders or consume
+        // external data quotas; replay only reports the mismatch instead.
+        private val SIDE_EFFECTING_TOOLS = setOf(
+            "create_order",
+            "cancel_order",
+            "marketdata_fetch"
+        )
+    }
+
     data class ReplayResult(
         val requestId: UUID,
         val toolName: String,
@@ -27,6 +37,17 @@ class AuditReplay(
     fun replay(requestId: UUID): ReplayResult {
         val record = repository.findByRequestId(requestId)
             ?: throw IllegalArgumentException("Audit record not found for requestId=$requestId")
+
+        if (record.toolName in SIDE_EFFECTING_TOOLS) {
+            return ReplayResult(
+                requestId = requestId,
+                toolName = record.toolName,
+                originalOutputHash = record.outputHash,
+                replayOutputHash = "",
+                outputMatch = false,
+                error = "Replay of side-effecting tool '${record.toolName}' is not allowed"
+            )
+        }
 
         @Suppress("UNCHECKED_CAST")
         val input = objectMapper.readValue(record.inputJson, Map::class.java) as Map<String, Any>

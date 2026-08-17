@@ -60,13 +60,25 @@ class BacktestEngine(private val riskReturnCalculator: RiskReturnCalculator = Ri
         currentEpisode?.let { drawdownEpisodes.add(DrawdownEpisode(it.startDate, it.troughDate, null, it.depth)) }
         val finalEquity = equityCurve.lastOrNull()?.equity ?: initialCapital
         val metrics = if (equityCurve.size >= 2) riskReturnCalculator.riskMetrics(seriesFromEquity(equityCurve)) else null
+        val winningTrades = trades.filter { it.pnl > 0 }
+        val losingTrades = trades.filter { it.pnl <= 0 }
+        val avgWin = if (winningTrades.isEmpty()) 0.0 else winningTrades.map { it.pnl }.average()
+        val avgLoss = if (losingTrades.isEmpty()) 0.0 else losingTrades.map { it.pnl }.average()
+        val winRateValue = if (trades.isEmpty()) 0.0 else winningTrades.size.toDouble() / trades.size
+        val expectancy = winRateValue * avgWin + (1.0 - winRateValue) * avgLoss
+
+        val years = equityCurve.size.toDouble() / 252.0
+        val grossTraded = trades.sumOf { kotlin.math.abs(it.size * it.entryPrice) } * 2.0
+        val avgCapital = (initialCapital + finalEquity) / 2.0
+        val annualizedTurnover = if (years > 0 && avgCapital > 0) grossTraded / avgCapital / years else 0.0
+
         val diagnostics = BacktestDiagnostics(
             numberOfTrades = trades.size,
-            winRate = if (trades.isEmpty()) 0.0 else trades.count { it.pnl > 0 }.toDouble() / trades.size,
+            winRate = winRateValue,
             averageTradeReturn = if (trades.isEmpty()) 0.0 else trades.map { it.pnl }.average(),
-            expectancy = 0.0,
-            maxExposure = trades.maxOfOrNull { kotlin.math.abs(it.size * (it.entryPrice)) } ?: 0.0,
-            annualizedTurnover = 0.0
+            expectancy = expectancy,
+            maxExposure = trades.maxOfOrNull { kotlin.math.abs(it.size * it.entryPrice) } ?: 0.0,
+            annualizedTurnover = annualizedTurnover
         )
         return BacktestResult(
             strategyName = strategyName,
