@@ -5,6 +5,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Entity
@@ -18,7 +19,7 @@ class AuditRecord(
     var requestId: UUID = UUID.randomUUID(),
 
     @Column(name = "timestamp", nullable = false)
-    var timestamp: Instant = Instant.now(),
+    var timestamp: Instant = Instant.now().truncatedTo(ChronoUnit.MICROS),
 
     @Column(name = "tool_name", nullable = false, length = 255)
     var toolName: String = "",
