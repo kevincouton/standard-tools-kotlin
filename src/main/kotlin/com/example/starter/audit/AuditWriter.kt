@@ -75,11 +75,15 @@ class AuditWriter(
             packageVersion = PackageVersionProvider.version(),
             prevRecordHash = prevRecordHash
         )
-        record.recordHash = computeRecordHash(record)
+        // Persist first so the database-assigned timestamp matches the one used
+        // in the hash; PostgreSQL TIMESTAMPTZ truncates nanoseconds to microseconds,
+        // which would otherwise make the verifier's recomputed hash differ.
         val saved = repository.save(record)
-        head.headHash = saved.recordHash
+        saved.recordHash = computeRecordHash(saved)
+        val verified = repository.save(saved)
+        head.headHash = verified.recordHash
         chainHeadRepository.save(head)
-        return saved
+        return verified
     }
 
     fun hashOf(data: Any): String = HashUtils.sha256Truncated16(canonicalJson(data))
