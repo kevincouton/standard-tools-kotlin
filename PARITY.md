@@ -69,13 +69,15 @@ This document compares the `standard-tools-kotlin` port against the other Standa
 
 ## CI status
 
+Validation below was performed locally with `nektos/act` on `linux/arm64` (Podman) using the workflow job(s) that exercise the core build and tests.
+
 | Port | Status | Notes |
 |---|---|---|
-| Kotlin | ✅ green | unit / integration / e2e green; native build not validated locally |
-| C# | ✅ green | `dotnet test` passes (88 tests) |
-| Go | ✅ green | `go test ./...` and image builds green locally |
-| Rust | ❌ red | `cargo fmt` not installed in mise toolchain; `set -o pipefail` fails under dash |
-| C++ | ❌ red | `rm -rf /var/lib/apt/lists/*` lacks permissions in GitHub Actions runner |
+| Kotlin | ✅ green | `act push --job unit-tests` passes (unit / integration / e2e); native build not validated locally |
+| C# | ✅ green | `act push --job build-and-test` passes (`dotnet test` 88 tests) |
+| Go | ✅ green | `act push --job quality` passes (`go test ./...`, `gofmt`, `go vet`) |
+| Rust | ⚠️ pending | `quality` job passes; `test` job fixed to skip artifact upload under `env.ACT` and is re-running |
+| C++ | ⚠️ pending | `quality` job is running; old `rm -rf /var/lib/apt/lists/*` issue already removed |
 
 ## Known limitations relevant to this port
 
@@ -85,6 +87,16 @@ This document compares the `standard-tools-kotlin` port against the other Standa
 - The `lint` mise task references `ktlintCheck`, which is not configured in the build.
 - The GraalVM native-image build depends on a toolchain that may not be available locally.
 - Some analysis outputs (e.g., PCA factor returns, deflated Sharpe) have known quant caveats documented in the source.
+
+## Outstanding P0/P1 gaps (deferred)
+
+The following items were identified in the staff-engine audit and are explicitly documented rather than hidden behind false claims:
+
+1. **TLS termination** — not implemented in any port. Deploy behind a reverse proxy that terminates TLS.
+2. **Structured logging / request tracing** — no request-id propagation or structured log output; observability is limited to console logging.
+3. **Full A2A/MCP semantics** — A2A is `tasks/send` only (no streaming, `tasks/get`, or `tasks/cancel`). MCP is SSE-based but session lifecycle and protocol compliance are incomplete.
+4. **Native-image CI** — the GraalVM `build-native` job requires a toolchain not validated under `act`; treat as experimental until green locally.
+5. **Dependency scanning** — no `cargo-audit`, `govulncheck`, or Dependabot integration yet.
 
 ## Recommendations before a release tag
 
