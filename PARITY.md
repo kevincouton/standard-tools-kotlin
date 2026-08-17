@@ -29,7 +29,7 @@ This document compares the `standard-tools-kotlin` port against the other Standa
 | Market data provider port | ✅ YF, Polygon, Bloomberg stub | ⚠️ interface / stub | ✅ synthetic, YF, Polygon | ✅ YF + Moka cache | ⚠️ synthetic only |
 | Indicators | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Risk / return metrics | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Analysis (regression, cointegration, Hurst, PCA, correlation, multi-factor, options) | ✅ | ✅ library; ⚠️ only regression + options exposed | ⚠️ no multi-factor | ⚠️ no multi-factor | ⚠️ no multi-factor |
+| Analysis (regression, cointegration, Hurst, PCA, correlation, multi-factor, options) | ✅ | ✅ library; ⚠️ only regression + options exposed | ⚠️ no multi-factor | ✅ | ⚠️ no multi-factor |
 | Backtesting engine | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Walk-forward optimization | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Monte Carlo simulation | ✅ | ✅ | ✅ | ✅ | ✅ |
