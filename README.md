@@ -31,9 +31,8 @@ Available tasks are defined in `.mise.toml`:
 | `test-e2e` | `./gradlew e2eTest` |
 | `test-all` | `./gradlew test integrationTest e2eTest` |
 | `test-visual` | `./gradlew e2eTest --info \| ./scripts/visual-test-report.sh` |
-| `lint` | `./gradlew ktlintCheck` |
 | `dependency-updates` | `./gradlew dependencyUpdates` |
-| `act-ci` | `./scripts/run-act-local.sh -j build` |
+| `act-ci` | `./scripts/run-act-local.sh -j build-jvm` |
 | `compose-up` | `podman-compose up -d --build` |
 | `compose-down` | `podman-compose down` |
 
