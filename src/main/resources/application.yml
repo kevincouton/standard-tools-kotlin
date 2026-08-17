@@ -20,6 +20,9 @@ spring:
       enabled: false
 
 standard-tools:
+  security:
+    auth-enabled: ${SQT_AUTH_ENABLED:true}
+    api-key: ${SQT_API_KEY:}
   market-data:
     default-provider: yfinance
     cache-ttl: 1h
