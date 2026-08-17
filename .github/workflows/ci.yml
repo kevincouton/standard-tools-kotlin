@@ -27,6 +27,7 @@ jobs:
           install: true
 
       - name: Set up Gradle
+        if: ${{ !env.ACT }}
         uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
 
       - name: Run unit tests
@@ -34,7 +35,7 @@ jobs:
         run: ./gradlew test
 
       - name: Upload unit test reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         if: always()
         with:
           name: unit-test-reports
@@ -57,6 +58,7 @@ jobs:
           install: true
 
       - name: Set up Gradle
+        if: ${{ !env.ACT }}
         uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
 
       - name: Run integration tests
@@ -64,7 +66,7 @@ jobs:
         run: ./gradlew integrationTest
 
       - name: Upload integration test reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         if: always()
         with:
           name: integration-test-reports
@@ -87,6 +89,7 @@ jobs:
           install: true
 
       - name: Set up Gradle
+        if: ${{ !env.ACT }}
         uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
 
       - name: Run E2E tests
@@ -94,7 +97,7 @@ jobs:
         run: ./gradlew e2eTest
 
       - name: Upload E2E test reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         if: always()
         with:
           name: e2e-test-reports
@@ -117,13 +120,14 @@ jobs:
           install: true
 
       - name: Set up Gradle
+        if: ${{ !env.ACT }}
         uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
 
       - name: Build JVM bootJar
         run: ./gradlew bootJar
 
       - name: Upload JVM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: jvm-boot-jar
           retention-days: 14
@@ -204,13 +208,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Gradle
+        if: ${{ !env.ACT }}
         uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
 
       - name: Build native executable
         run: ./gradlew nativeCompile
 
       - name: Upload native executable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: native-executable
           retention-days: 14
