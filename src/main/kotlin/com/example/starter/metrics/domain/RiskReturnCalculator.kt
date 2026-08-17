@@ -19,8 +19,13 @@ class RiskReturnCalculator {
             .let { BigDecimal(it - 1).setScale(4, RoundingMode.HALF_UP) }
         val stats = DescriptiveStatistics(returns.toDoubleArray())
         val annVol = stats.standardDeviation * sqrt(252.0)
-        val meanReturn = returns.average() * 252
-        val cagr = if (returns.isEmpty()) null else BigDecimal(meanReturn).setScale(4, RoundingMode.HALF_UP)
+        val cagr = if (series.size < 2) null else {
+            val start = series.first().close.toDouble()
+            val end = series.last().close.toDouble()
+            val n = returns.size
+            val value = (end / start).pow(252.0 / n) - 1
+            BigDecimal(value).setScale(4, RoundingMode.HALF_UP)
+        }
         return ReturnMetrics(
             cumulativeReturn = cumulative,
             cagr = cagr,
@@ -31,14 +36,16 @@ class RiskReturnCalculator {
     fun riskMetrics(series: PriceSeries, riskFreeRate: Double = 0.02): RiskMetrics {
         val returns = simpleReturns(series)
         val stats = DescriptiveStatistics(returns.toDoubleArray())
-        val meanExcess = returns.map { it - riskFreeRate / 252 }.average()
-        val vol = stats.standardDeviation * sqrt(252.0)
+        val dailyRiskFree = riskFreeRate / 252.0
+        val meanExcess = returns.map { it - dailyRiskFree }.average()
+        val dailyVol = stats.standardDeviation
+        val vol = dailyVol * sqrt(252.0)
         val downside = returns.filter { it < 0 }
         val downsideDev = if (downside.isEmpty()) 0.0 else DescriptiveStatistics(downside.toDoubleArray()).standardDeviation * sqrt(252.0)
-        val sharpe = if (vol == 0.0) null else meanExcess / vol
-        val sortino = if (downsideDev == 0.0) null else meanExcess / downsideDev
+        val sharpe = if (dailyVol == 0.0) null else meanExcess * sqrt(252.0) / dailyVol
+        val sortino = if (downsideDev == 0.0) null else meanExcess * 252.0 / downsideDev
         val (maxDd, _) = drawdown(series)
-        val calmar = if (maxDd == 0.0) null else meanExcess * 252 / maxDd
+        val calmar = if (maxDd == 0.0) null else meanExcess * 252.0 / maxDd
         val sorted = returns.sorted()
         val var95 = sorted.getOrElse((sorted.size * 0.05).toInt()) { sorted.firstOrNull() ?: 0.0 }
         val cvar95 = sorted.take((sorted.size * 0.05).toInt().coerceAtLeast(1)).average()
