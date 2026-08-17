@@ -50,7 +50,7 @@ This document compares the `standard-tools-kotlin` port against the other Standa
 | TLS termination | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Audit provenance (git commit / version / seed) | ⚠️ commit + version | ⚠️ schema only | ✅ all three | ❌ none recorded | ✅ all three |
 | Replay read-only / side-effect blocklist | ✅ blocklist | ❌ not implemented | ❌ re-executes | ⚠️ blocklist, CLI placeholder | ⚠️ read-only fetch, no re-execution |
-| Persistent audit storage | ✅ PostgreSQL | ❌ in-memory only | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory |
+| Persistent audit storage | ✅ PostgreSQL | ✅ SQLite + memory | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory | ✅ PostgreSQL + memory |
 
 ## Operational hardening
 
@@ -76,8 +76,8 @@ Validation below was performed locally with `nektos/act` on `linux/arm64` (Podma
 | Kotlin | ✅ green | `act push --job unit-tests` passes (unit / integration / e2e); native build not validated locally |
 | C# | ✅ green | `act push --job build-and-test` passes (`dotnet test` 88 tests) |
 | Go | ✅ green | `act push --job quality` passes (`go test ./...`, `gofmt`, `go vet`) |
-| Rust | ⚠️ pending | `quality` job passes; `test` job fixed to skip artifact upload under `env.ACT` and is re-running |
-| C++ | ⚠️ pending | `quality` job is running; old `rm -rf /var/lib/apt/lists/*` issue already removed |
+| Rust | ✅ green | `act push --job test` passes; artifact upload skipped under `env.ACT` |
+| C++ | ✅ green | `act push --job quality` passes (build + ctest)
 
 ## Known limitations relevant to this port
 
